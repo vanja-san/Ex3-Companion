@@ -1,0 +1,59 @@
+{
+	"schemaVersion": 1,
+	"id": "ex3-companion",
+	"version": "${version}",
+	"name": "Ex³ Companion",
+	"description": "A loyal floating companion: craft its core, slot it in, and it follows you on your adventures.",
+	"authors": ["vanja-san"],
+	"contact": {
+		"homepage": "https://github.com/vanja-san/Ex3Companion",
+		"sources": "https://github.com/vanja-san/Ex3Companion"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/ex3-companion/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			{
+				"value": "mod.ex3.companion.Ex3Companion",
+				"adapter": "kotlin"
+			}
+		],
+		"client": [
+			{
+				"value": "mod.ex3.companion.client.Ex3Client",
+				"adapter": "kotlin"
+			}
+		],
+		"fabric-datagen": [
+			{
+				"value": "mod.ex3.companion.client.Ex3DataGenerator",
+				"adapter": "kotlin"
+			}
+		],
+		"lambdynlights:initializer": [
+			{
+				"value": "mod.ex3.companion.client.CompanionDynamicLights",
+				"adapter": "kotlin"
+			}
+		],
+		"modmenu": [
+			{
+				"value": "mod.ex3.companion.client.ModMenuIntegration",
+				"adapter": "kotlin"
+			}
+		]
+	},
+	"mixins": [
+		"ex3.mixins.json",
+		"ex3.client.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~26.2",
+		"java": ">=25",
+		"fabric-api": "*",
+		"fabric-language-kotlin": "*",
+		"yet_another_config_lib_v3": "*"
+	}
+}

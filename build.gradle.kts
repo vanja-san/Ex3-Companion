@@ -1,0 +1,150 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
+plugins {
+	id("net.fabricmc.fabric-loom")
+	`maven-publish`
+	// Generates .project/.classpath for IDEs (Eclipse/JDT): ensures the Kotlin
+	// compiled output is visible to the Java language server in VS Code.
+    eclipse
+	id("org.jetbrains.kotlin.jvm") version "2.4.10"
+}
+
+repositories {
+	// Add repositories to retrieve artifacts from in here.
+	// You should only use this when depending on other mods because
+	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
+	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
+	// for more information about repositories.
+	maven("https://maven.blamejared.com/") // JEI
+	maven("https://api.modrinth.com/maven") { // Jade
+		content {
+			includeGroup("maven.modrinth")
+		}
+	}
+	maven("https://cursemaven.com") { // CurseForge mods (dev-only)
+		content {
+			includeGroup("curse.maven")
+		}
+	}
+	maven("https://maven.isxander.dev/releases") { // YACL
+		name = "Xander Maven"
+	}
+}
+
+loom {
+	splitEnvironmentSourceSets()
+
+	mods {
+		register("ex3-companion") {
+			sourceSet(sourceSets.main.get())
+			sourceSet(sourceSets.getByName("client"))
+		}
+	}
+}
+
+fabricApi {
+	configureDataGeneration {
+		client = true
+	}
+}
+
+dependencies {
+	// To change the versions see the gradle.properties file
+	minecraft("com.mojang:minecraft:${providers.gradleProperty("minecraft_version").get()}")
+	implementation("net.fabricmc:fabric-loader:${providers.gradleProperty("loader_version").get()}")
+
+	// Fabric API. This is technically optional, but you probably want it anyway.
+	implementation("net.fabricmc.fabric-api:fabric-api:${providers.gradleProperty("fabric_api_version").get()}")
+    implementation("net.fabricmc:fabric-language-kotlin:${providers.gradleProperty("fabric_kotlin_version").get()}")
+
+	// Config screen library
+	implementation("dev.isxander:yet-another-config-lib:${providers.gradleProperty("yacl_version").get()}")
+
+	// Dev-only test mods: present in runClient, never compiled against, never bundled into the jar.
+	localRuntime("mezz.jei:jei-26.2-fabric:${providers.gradleProperty("jei_version").get()}")
+	localRuntime("maven.modrinth:jade:${providers.gradleProperty("jade_version").get()}")
+	// Resource-pack manager, dev convenience only (client-side).
+	localRuntime("maven.modrinth:resourcify:${providers.gradleProperty("resourcify_version").get()}")
+	// Shader stack for dev testing (Iris needs Sodium).
+	localRuntime("maven.modrinth:sodium:${providers.gradleProperty("sodium_version").get()}")
+	localRuntime("maven.modrinth:iris:${providers.gradleProperty("iris_version").get()}")
+
+	// Configured (curse.maven): data-driven config UI, dev-only.
+	localRuntime("curse.maven:configured-457570:${providers.gradleProperty("configured_version").get()}")
+	// Framework (curse.maven): required by Configured, dev-only.
+	localRuntime("curse.maven:framework-549225:${providers.gradleProperty("framework_version").get()}")
+	// Catalogue (curse.maven): config screen provider, dev-only.
+	localRuntime("curse.maven:catalogue-459701:${providers.gradleProperty("catalogue_version").get()}")
+	// MenuLogue (curse.maven): Mod Menu ↔ Catalogue bridge, dev-only.
+	localRuntime("curse.maven:menulogue-682371:${providers.gradleProperty("menulogue_version").get()}")
+	// Mod Menu: mod list screen + config screens, dev-only.
+	compileOnly("maven.modrinth:modmenu:${providers.gradleProperty("modmenu_version").get()}")
+	localRuntime("maven.modrinth:modmenu:${providers.gradleProperty("modmenu_version").get()}")
+
+	// Fabric Light API (LambDynamicLights): lets the companion emit light like a
+	// torch so shader packs bloom it. The API classes live in a jar-in-jar inside the
+	// mod, so we compile against the extracted stubs in libs/ (compileOnly keeps them
+	// off our jar) and ship the full mod via localRuntime for runClient only.
+	val lambdyn = providers.gradleProperty("lambdynlights_version").get()
+	compileOnly(files("libs/lambdynlights-api.jar", "libs/yumi-commons-event.jar"))
+	localRuntime("maven.modrinth:lambdynamiclights:$lambdyn")
+}
+
+tasks.processResources {
+	val version = version
+	inputs.property("version", version)
+
+	filesMatching("fabric.mod.json") {
+		expand("version" to version)
+	}
+}
+
+tasks.withType<JavaCompile>().configureEach {
+	options.release = 25
+}
+
+kotlin {
+	compilerOptions {
+		jvmTarget = JvmTarget.JVM_25
+	}
+}
+
+java {
+	// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
+	// if it is present.
+	// If you remove this line, sources will not be generated.
+	withSourcesJar()
+
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+
+tasks.jar {
+	val mcVersion = providers.gradleProperty("minecraft_version").get()
+	inputs.property("mcVersion", mcVersion)
+
+	archiveBaseName.set("Ex3Companion")
+	archiveVersion.set("v${project.version}-mc$mcVersion")
+	archiveClassifier.set("Fabric")
+
+	from("LICENSE") {
+		rename { "${it}_Ex3Companion" }
+	}
+}
+
+// configure the maven publication
+publishing {
+	publications {
+		register<MavenPublication>("mavenJava") {
+			from(components["java"])
+		}
+	}
+
+	// See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
+	repositories {
+		// Add repositories to publish to here.
+		// Notice: This block does NOT have the same function as the block in the top level.
+		// The repositories here will be used for publishing your artifact, not for
+		// retrieving dependencies.
+	}
+}

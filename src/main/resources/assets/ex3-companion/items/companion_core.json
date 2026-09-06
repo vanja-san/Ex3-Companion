@@ -1,0 +1,6 @@
+{
+	"model": {
+		"type": "minecraft:model",
+		"model": "ex3-companion:item/companion_core"
+	}
+}
