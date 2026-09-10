@@ -1,0 +1,13 @@
+﻿{
+    "type": "ex3-companion:dye_glass",
+    "category": "misc",
+    "color": "brown",
+    "ingredients": [
+        "ex3-companion:companion_core",
+        "minecraft:brown_dye"
+    ],
+    "result": {
+        "id": "ex3-companion:companion_core",
+        "count": 1
+    }
+}

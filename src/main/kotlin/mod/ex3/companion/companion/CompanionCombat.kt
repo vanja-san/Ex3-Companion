@@ -19,12 +19,22 @@ class CompanionCombat(private val e: CompanionEntity) {
 	private var attackCooldown: Int = 0
 	private var noTargetTicks: Int = 0
 
+	/** Ticks since the target last took damage from us (for stale-target detection). */
+	private var staleTargetTicks: Int = 0
+	/** HP of the target when we last hit it; used to detect healing. */
+	private var lastTargetHealth: Float = 0f
+	/** Countdown to next re-target evaluation. */
+	private var retargetTimer: Int = 0
+
 	/** Enters ATTACK when a hostile mob is near the owner. Returns true if combat started. */
 	fun tryStartCombat(owner: Player): Boolean {
 		val target = findTarget(owner) ?: return false
 		combatTarget = target
 		attackCooldown = 0
 		noTargetTicks = 0
+		staleTargetTicks = 0
+		lastTargetHealth = target.health
+		retargetTimer = RETARGET_INTERVAL
 		e.setState(BrainState.ATTACK)
 		return true
 	}
@@ -42,7 +52,7 @@ class CompanionCombat(private val e: CompanionEntity) {
 
 		val deadOrGone = target == null || !target.isAlive || target.isRemoved
 		val tooFar = target != null && e.distanceToSqr(target) > cfg.abortDistance * cfg.abortDistance
-		val ownerTooFar = e.distanceToSqr(owner) > abortDistSq
+		val ownerTooFar = e.distanceToSqr(owner) > cfg.ownerAbortDistance * cfg.ownerAbortDistance
 
 		val notAttacking = target != null && !isAttackingOwner(target, owner) && !isTargetingCompanion(target)
 		if (notAttacking) {
@@ -59,6 +69,42 @@ class CompanionCombat(private val e: CompanionEntity) {
 			}
 		} else {
 			noTargetTicks = 0
+		}
+
+		// --- Stale target detection ---
+		// If the target is alive but we haven't dealt damage in a while, or it healed
+		// above the last recorded HP, consider it stale (e.g. witch self-healing).
+		if (target != null && target.isAlive) {
+			if (target.health >= lastTargetHealth) {
+				staleTargetTicks++
+			} else {
+				staleTargetTicks = 0
+			}
+			lastTargetHealth = target.health
+
+			if (staleTargetTicks >= cfg.staleTargetTimeout) {
+				stopCombat()
+				return CombatTickResult(
+					disengaged = true,
+					flightTarget = e.flightTarget,
+					speedLimit = e.speedLimit,
+					lookTarget = null,
+					moodPulse = 1f,
+				)
+			}
+		}
+
+		// --- Periodic re-targeting ---
+		retargetTimer--
+		if (retargetTimer <= 0) {
+			retargetTimer = RETARGET_INTERVAL
+			val better = findBetterTarget(owner, target)
+			if (better != null && better !== target) {
+				combatTarget = better
+				staleTargetTicks = 0
+				lastTargetHealth = better.health
+				attackCooldown = 0
+			}
 		}
 
 		if (deadOrGone || tooFar || ownerTooFar) {
@@ -133,6 +179,12 @@ class CompanionCombat(private val e: CompanionEntity) {
 			level.damageSources().mobAttack(e)
 		}
 		target.hurtServer(level, source, damage)
+
+		// Track health so stale-target detection can see if the target healed back.
+		if (target.isAlive) {
+			lastTargetHealth = target.health
+			staleTargetTicks = 0
+		}
 
 		if (target is Mob) target.target = e
 
@@ -219,6 +271,54 @@ class CompanionCombat(private val e: CompanionEntity) {
 	private fun isTargetingCompanion(entity: LivingEntity): Boolean =
 		(entity is Mob) && entity.target == e
 
+	/**
+	 * During periodic re-targeting, find a higher-priority target than [current].
+	 * Priority: mobs attacking owner > mobs attacking companion > nearest hostile.
+	 * Only switches if the new target is strictly better (higher priority tier or
+	 * same tier but significantly closer).
+	 */
+	private fun findBetterTarget(owner: Player, current: LivingEntity?): LivingEntity? {
+		val cfg = CompanionConfig.get().combat
+		val radius = cfg.searchRadius
+		val candidates = e.level().getEntitiesOfClass(
+			Monster::class.java,
+			owner.boundingBox.inflate(radius),
+		) { it.isAlive && e.canSeePosition(it.eyePosition) }
+		if (candidates.isEmpty()) return null
+
+		val currentPriority = if (current != null) targetPriority(current, owner) else -1
+		var best = current
+		var bestPriority = currentPriority
+		var bestDistSq = current?.let { e.distanceToSqr(it) } ?: Double.MAX_VALUE
+
+		for (mob in candidates) {
+			val pri = targetPriority(mob, owner)
+			val distSq = e.distanceToSqr(mob)
+
+			// Strictly higher priority tier → always switch.
+			// Same tier but ≥3× closer → switch.
+			val dominated = when {
+				pri > bestPriority -> true
+				pri == bestPriority && best != null && distSq < bestDistSq * 0.11 -> true
+				else -> false
+			}
+			if (dominated) {
+				best = mob
+				bestPriority = pri
+				bestDistSq = distSq
+			}
+		}
+		return best
+	}
+
+	/** Returns a priority tier for a target: 2 = attacking owner, 1 = attacking companion, 0 = other hostile. */
+	private fun targetPriority(entity: LivingEntity, owner: Player): Int =
+		when {
+			isAttackingOwner(entity, owner) -> 2
+			isTargetingCompanion(entity) -> 1
+			else -> 0
+		}
+
 	fun stopCombat() {
 		combatTarget = null
 	}
@@ -229,6 +329,8 @@ class CompanionCombat(private val e: CompanionEntity) {
 		private const val BEAM_MIN_STEPS = 6
 		private const val BEAM_MAX_STEPS = 40
 		private const val CATCH_UP_DISTANCE_SQ = 9.0
+		/** Ticks between periodic re-target evaluations. */
+		private const val RETARGET_INTERVAL = 40
 		// Strategic mode scoring bonuses
 		private const val STRATEGIC_ATTACKING_BONUS = 50.0
 		private const val STRATEGIC_CREEPER_PENALTY = 80.0

@@ -1,9 +1,16 @@
 package mod.ex3.companion.item
 
 import mod.ex3.companion.companion.CompanionData
+import mod.ex3.companion.companion.CoreSlotManager
 import mod.ex3.companion.registry.ModComponents
+import mod.ex3.companion.registry.ModItems
+import net.minecraft.world.InteractionHand
+import net.minecraft.world.InteractionResult
+import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.Items
+import net.minecraft.world.level.Level
 
 /**
  * The companion core: crafted item that is inserted into the companion slot.
@@ -37,5 +44,33 @@ class CompanionCoreItem(properties: Properties) : Item(properties) {
 			fraction > 0.25f -> 0xFFFFAA00.toInt() // moderate (orange)
 			else -> 0xFFFF5555.toInt()             // low (red)
 		}
+	}
+
+	/**
+	 * Right-click in air: equips the core into the companion slot.
+	 * If a core is already equipped, swaps it with the held one.
+	 */
+	override fun use(level: Level, player: Player, hand: InteractionHand): InteractionResult {
+		if (level.isClientSide) {
+			return InteractionResult.FAIL
+		}
+
+		val heldStack = player.getItemInHand(hand)
+		val container = CoreSlotManager.getOrCreateContainer(player)
+		val equippedStack = container.getItem(0)
+
+		if (equippedStack.`is`(ModItems.COMPANION_CORE)) {
+			// Something already equipped — swap it out.
+			player.setItemInHand(hand, equippedStack.copy())
+			container.setItem(0, heldStack.copy())
+			CoreSlotManager.onSlotChanged(player)
+			return InteractionResult.SUCCESS
+		}
+
+		// Empty slot — equip from hand.
+		player.setItemInHand(hand, ItemStack.EMPTY)
+		container.setItem(0, heldStack.copy())
+		CoreSlotManager.onSlotChanged(player)
+		return InteractionResult.SUCCESS
 	}
 }

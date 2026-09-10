@@ -146,7 +146,7 @@ All settings are also editable via **Mod Menu** → Ex³ Companion → Config Sc
 ### Client only (singleplayer / your side on a server)
 
 1. Install [Fabric Loader](https://fabricmc.net/use/installer/) for Minecraft 26.2.
-2. Copy `Ex3Companion-v1.0-mc26.2-Fabric.jar` into your `.minecraft/mods/` folder.
+2. Copy `Ex3Companion-v1.1.0-mc26.2-Fabric.jar` into your `.minecraft/mods/` folder.
 3. Also install Fabric API, Fabric Language Kotlin, and YACL into the same `mods/` folder.
 4. Optionally add LambDynamicLights (dynamic lighting) and Mod Menu (config screen).
 5. Launch the game.
@@ -154,7 +154,7 @@ All settings are also editable via **Mod Menu** → Ex³ Companion → Config Sc
 ### Client + Server (multiplayer, everyone sees the companion)
 
 1. Install Fabric Loader on both the server and all clients.
-2. Put `Ex3Companion-v1.0-mc26.2-Fabric.jar` + Fabric API + Fabric Language Kotlin + YACL into the `mods/` folder on **both** the server and every client.
+2. Put `Ex3Companion-v1.1.0-mc26.2-Fabric.jar` + Fabric API + Fabric Language Kotlin + YACL into the `mods/` folder on **both** the server and every client.
 3. Restart the server and have all players rejoin.
 4. Optional mods (LambDynamicLights, Mod Menu) only need to be on the client side.
 

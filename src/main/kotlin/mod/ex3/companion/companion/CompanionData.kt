@@ -25,6 +25,7 @@ data class CompanionData(
 	val level: Int,
 	val reviveAt: Long = 0L, // server game time (ticks) before the companion may respawn
 	val memory: CompanionMemory = CompanionMemory.EMPTY,
+	val glassColor: String = "clear", // "clear" = transparent glass, or dye color name
 ) : TooltipProvider {
 
 	override fun addToTooltip(
@@ -66,6 +67,8 @@ data class CompanionData(
 
 	/** Marks the companion as "recovering" until the given game time (ticks). */
 	fun withReviveAt(newReviveAt: Long): CompanionData = copy(reviveAt = newReviveAt)
+
+	fun withGlassColor(color: String): CompanionData = copy(glassColor = color)
 
 	fun withMemory(newMemory: CompanionMemory): CompanionData = copy(memory = newMemory)
 
@@ -113,8 +116,9 @@ data class CompanionData(
 				Codec.INT.optionalFieldOf("level", 1).forGetter(CompanionData::level),
 				Codec.LONG.optionalFieldOf("revive_at", 0L).forGetter(CompanionData::reviveAt),
 				CompanionMemory.CODEC.optionalFieldOf("memory", CompanionMemory.EMPTY).forGetter(CompanionData::memory),
-			).apply(instance) { id: String, health: Float, xp: Int, level: Int, reviveAt: Long, memory: CompanionMemory ->
-				CompanionData(parseId(id), health, xp, level, reviveAt, memory)
+				Codec.STRING.optionalFieldOf("glass_color", "clear").forGetter(CompanionData::glassColor),
+			).apply(instance) { id: String, health: Float, xp: Int, level: Int, reviveAt: Long, memory: CompanionMemory, glassColor: String ->
+				CompanionData(parseId(id), health, xp, level, reviveAt, memory, glassColor)
 			}
 		}
 
@@ -129,8 +133,10 @@ data class CompanionData(
 			CompanionData::level,
 			ByteBufCodecs.VAR_LONG,
 			CompanionData::reviveAt,
-		) { id: String, health: Float, xp: Int, level: Int, reviveAt: Long ->
-			CompanionData(parseId(id), health, xp, level, reviveAt, CompanionMemory.EMPTY)
+			ByteBufCodecs.STRING_UTF8,
+			CompanionData::glassColor,
+		) { id: String, health: Float, xp: Int, level: Int, reviveAt: Long, glassColor: String ->
+			CompanionData(parseId(id), health, xp, level, reviveAt, CompanionMemory.EMPTY, glassColor)
 		}
 	}
 }

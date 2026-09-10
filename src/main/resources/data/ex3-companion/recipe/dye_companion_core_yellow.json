@@ -1,0 +1,13 @@
+﻿{
+    "type": "ex3-companion:dye_glass",
+    "category": "misc",
+    "color": "yellow",
+    "ingredients": [
+        "ex3-companion:companion_core",
+        "minecraft:yellow_dye"
+    ],
+    "result": {
+        "id": "ex3-companion:companion_core",
+        "count": 1
+    }
+}

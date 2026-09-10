@@ -103,6 +103,28 @@ tasks.withType<JavaCompile>().configureEach {
 	options.release = 25
 }
 
+// Client Java mixins import Kotlin classes from the main source set.
+// Ensure main Kotlin is compiled before client Java so the classes are on the classpath.
+tasks.named("compileClientJava") {
+	dependsOn(tasks.named("compileKotlin"))
+}
+
+// Eclipse / VS Code: make client source set see main Kotlin output.
+eclipse {
+	classpath {
+		file {
+			withXml {
+				val node = asNode()
+				// Add build/classes/kotlin/main so Java language server resolves Kotlin classes.
+				node.appendNode("classpathentry", mapOf(
+					"kind" to "lib",
+					"path" to "build/classes/kotlin/main"
+				))
+			}
+		}
+	}
+}
+
 kotlin {
 	compilerOptions {
 		jvmTarget = JvmTarget.JVM_25

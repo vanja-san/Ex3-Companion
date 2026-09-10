@@ -1,6 +1,7 @@
 package mod.ex3.companion.companion
 
 import mod.ex3.companion.config.CompanionConfig
+import mod.ex3.companion.recipe.ClearGlassRecipe
 import mod.ex3.companion.registry.ModComponents
 import mod.ex3.companion.registry.ModEntities
 import mod.ex3.companion.registry.ModItems
@@ -108,8 +109,11 @@ object CoreSlotManager {
 
 		val existing = findCompanion(player)
 		if (existing != null) {
-			existing.syncMaxHealth(readData(stack).level)
-			existing.health = readData(stack).health
+			existing.syncMaxHealth(data.level)
+			existing.health = data.health
+			existing.glassColorName = data.glassColor
+			// Keep the entity id fresh on the core item (also persists colour sources).
+			writeData(player, stack, data.withId(existing.uuid))
 			return
 		}
 
@@ -121,6 +125,7 @@ object CoreSlotManager {
 		entity.setPos(spawnPos.x, spawnPos.y, spawnPos.z)
 		entity.syncMaxHealth(data.level)
 		entity.health = data.health
+		entity.glassColorName = data.glassColor
 		// Load exploration memory from the core item.
 		entity.memory.exploredChunks.addAll(data.memory.exploredChunks)
 		entity.memory.oreYPreferences.putAll(data.memory.oreYPreferences)
@@ -462,11 +467,26 @@ object CoreSlotManager {
 	// Data component helpers
 	// ------------------------------------------------------------------
 
-	private fun readData(stack: ItemStack): CompanionData =
-		stack.getOrDefault(ModComponents.COMPANION_DATA, CompanionData.DEFAULT)
+	private fun readData(stack: ItemStack): CompanionData {
+		val data = stack.getOrDefault(ModComponents.COMPANION_DATA, CompanionData.DEFAULT)
+		// Glass tint authority: the item model select (custom_model_data[0]) is always fresh,
+		// so it self-heals stale colors stuck in the mod component. Fall back to the recipe's
+		// custom_data tag, then to the mod component.
+		val modelColor = stack.get(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA)?.strings()?.firstOrNull()
+		if (modelColor != null) return data.withGlassColor(modelColor)
+		val customData = stack.get(net.minecraft.core.component.DataComponents.CUSTOM_DATA)
+		val nbt = customData?.copyTag()
+		if (nbt != null && nbt.contains("companion")) {
+			val companion = nbt.getCompoundOrEmpty("companion")
+			val color = companion.getStringOr("glassColor", "clear")
+			return data.withGlassColor(color)
+		}
+		return data
+	}
 
 	private fun writeData(player: Player, stack: ItemStack, data: CompanionData) {
 		stack[ModComponents.COMPANION_DATA] = data
+		ClearGlassRecipe.applyGlassColor(stack, data.glassColor)
 		// Mark the backing container dirty so vanilla broadcastChanges() detects the
 		// component mutation and sends a slot update to the client. Without this the
 		// health bar stays stale because SimpleContainer only tracks setItem() calls.

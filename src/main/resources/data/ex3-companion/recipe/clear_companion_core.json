@@ -1,0 +1,12 @@
+{
+    "type": "ex3-companion:clear_glass",
+    "category": "misc",
+    "ingredients": [
+        "ex3-companion:companion_core",
+        "minecraft:sponge"
+    ],
+    "result": {
+        "id": "ex3-companion:companion_core",
+        "count": 1
+    }
+}

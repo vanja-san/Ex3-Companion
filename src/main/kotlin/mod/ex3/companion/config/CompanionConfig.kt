@@ -15,12 +15,14 @@ import java.io.FileWriter
  */
 class CompanionConfig {
 
-	@Expose val health = HealthConfig()
-	@Expose val combat = CombatConfig()
-	@Expose val healing = HealingConfig()
-	@Expose val movement = MovementConfig()
-	@Expose val explore = ExploreConfig()
-	@Expose val xp = XpConfig()
+	// NOTE: These are `var` (not `val`) because Gson deserializes them reflectively.
+	// Kotlin `val` compiles to a `final` field; JDK 17+ prints a warning on final-field mutation.
+	@Expose var health = HealthConfig()
+	@Expose var combat = CombatConfig()
+	@Expose var healing = HealingConfig()
+	@Expose var movement = MovementConfig()
+	@Expose var explore = ExploreConfig()
+	@Expose var xp = XpConfig()
 
 	class HealthConfig {
 		@Expose var base: Float = 20f
@@ -42,9 +44,13 @@ class CompanionConfig {
 		@Expose var searchRadius: Double = 16.0
 		@Expose var fireRange: Double = 10.0
 		@Expose var abortDistance: Double = 20.0
+		/** Distance from the owner at which combat aborts (owner ran away from the fight). */
+		@Expose var ownerAbortDistance: Double = 30.0
 		@Expose var xpPerKill: Int = 5
 		/** Ticks after which combat aborts if the target is not actively attacking owner or companion. */
 		@Expose var noTargetTimeout: Int = 100
+		/** Ticks after which a target is considered stale (e.g. witch self-healing faster than damage). */
+		@Expose var staleTargetTimeout: Int = 100
 		/** Combat mode: DEFENDER, AGGRESSIVE, or STRATEGIC. */
 		@Expose var combatMode: CombatMode = CombatMode.DEFENDER
 	}

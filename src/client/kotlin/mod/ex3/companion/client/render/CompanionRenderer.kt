@@ -12,10 +12,11 @@ import net.minecraft.client.renderer.entity.state.EntityRenderState
 import net.minecraft.client.renderer.state.level.CameraRenderState
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.util.Mth
+import net.minecraft.world.item.DyeColor
 import net.minecraft.world.level.block.Blocks
 
 /**
- * Render state carrying the two block models (glass shell + sea-lantern core)
+ * Render state carrying the two block models (glass shell + emerald core)
  * plus animation values extracted from the entity.
  */
 class CompanionRenderState : EntityRenderState() {
@@ -28,7 +29,7 @@ class CompanionRenderState : EntityRenderState() {
 
 /**
  * Renders the companion as a floating glass cube with a small glowing
- * sea-lantern core inside. Vanilla block models are reused directly,
+ * emerald core inside. Vanilla block models are reused directly,
  * so all UV mapping / texture folding is exactly like in-game blocks.
  *
  * Uses the 26.x submit-based pipeline: block states are resolved during
@@ -39,9 +40,13 @@ class CompanionRenderer(context: EntityRendererProvider.Context) :
 
 	private val modelResolver = context.blockModelResolver
 
-	private val glassState = Blocks.GLASS.defaultBlockState()
-	private val lampState = Blocks.SEA_LANTERN.defaultBlockState()
+	private val lampState = Blocks.EMERALD_BLOCK.defaultBlockState()
 	private val lampStateAttacking = Blocks.REDSTONE_BLOCK.defaultBlockState()
+
+	/** Stained glass for each dye color. "clear" is handled separately in extractRenderState. */
+	private val glassByDye: Array<net.minecraft.world.level.block.state.BlockState> = DyeColor.entries.map { color ->
+		Blocks.STAINED_GLASS.pick(color).defaultBlockState()
+	}.toTypedArray()
 
 	init {
 		shadowRadius = 0.3f // small shadow under the floating cube
@@ -57,7 +62,10 @@ class CompanionRenderer(context: EntityRendererProvider.Context) :
 		super.extractRenderState(entity, state, partialTick)
 
 		val displayContext = BlockDisplayContext.create()
-		modelResolver.update(state.glassBlock, glassState, displayContext)
+		// Unknown or invalid names (including the special "clear") resolve to clear glass.
+		val colorIdx = CompanionEntity.DYE_COLOR_NAMES.indexOf(entity.glassColorName)
+		val glassBlock = if (colorIdx in glassByDye.indices) glassByDye[colorIdx] else Blocks.GLASS.defaultBlockState()
+		modelResolver.update(state.glassBlock, glassBlock, displayContext)
 		val lamp = if (entity.isAttacking) lampStateAttacking else lampState
 		modelResolver.update(state.lampBlock, lamp, displayContext)
 
@@ -86,7 +94,7 @@ class CompanionRenderer(context: EntityRendererProvider.Context) :
 	) {
 		super.submit(state, poseStack, collector, cameraRenderState)
 
-		// --- Outer glass cube (full-bright: the whole companion glows like a sea lantern) ---
+		// --- Outer glass cube (full-bright: the whole companion glows) ---
 		poseStack.pushPose()
 		poseStack.translate(0.0f, CUBE_CENTER_Y + state.bobOffset, 0.0f)
 		poseStack.mulPose(Axis.YP.rotationDegrees(state.spinDegrees))
@@ -95,7 +103,7 @@ class CompanionRenderer(context: EntityRendererProvider.Context) :
 		state.glassBlock.submit(poseStack, collector, LAMP_GLOW_LIGHT, OverlayTexture.NO_OVERLAY, state.outlineColor)
 		poseStack.popPose()
 
-		// --- Inner sea-lantern core (counter-rotating, pulsing, full-bright) ---
+		// --- Inner emerald core (counter-rotating, pulsing, full-bright) ---
 		poseStack.pushPose()
 		poseStack.translate(0.0f, CUBE_CENTER_Y + state.bobOffset, 0.0f)
 		poseStack.mulPose(Axis.YP.rotationDegrees(-state.spinDegrees * CORE_COUNTER_SPIN))

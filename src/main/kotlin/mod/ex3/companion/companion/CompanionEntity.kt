@@ -24,7 +24,7 @@ import net.minecraft.world.phys.Vec3
 import java.util.UUID
 
 /**
- * The companion entity: a floating glass cube with a glowing sea-lantern core.
+ * The companion entity: a floating glass cube with a glowing emerald core.
  *
  * Movement is fully custom and server-authoritative: vanilla [PathfinderMob]
  * movement is disabled by overriding [travel] as a no-op, and every tick the
@@ -161,6 +161,17 @@ class CompanionEntity(type: EntityType<CompanionEntity>, level: Level) : Pathfin
 	val isAttacking: Boolean get() = currentState() == BrainState.ATTACK
 	val moodLevel: Float get() = brain.moodPulse
 
+	/** Glass color name: "clear" = transparent, or dye color name like "white", "cyan". Synched from server to client. */
+	var glassColorName: String
+		get() {
+			val idx = entityData[DATA_GLASS_COLOR].toInt()
+			return if (idx < 0) "clear" else DYE_COLOR_NAMES.getOrElse(idx) { "clear" }
+		}
+		set(value) {
+			val idx = DYE_COLOR_NAMES.indexOf(value)
+			entityData[DATA_GLASS_COLOR] = if (idx < 0) (-1).toByte() else idx.toByte()
+		}
+
 	fun readLevel(): Int =
 		ownerPlayer()?.let { CoreSlotManager.readCompanionLevel(it) } ?: 1
 
@@ -186,6 +197,7 @@ class CompanionEntity(type: EntityType<CompanionEntity>, level: Level) : Pathfin
 	override fun defineSynchedData(builder: SynchedEntityData.Builder) {
 		super.defineSynchedData(builder)
 		builder.define(DATA_STATE, BrainState.FOLLOW.ordinal.toByte())
+		builder.define(DATA_GLASS_COLOR, (-1).toByte()) // -1 = clear glass (default)
 	}
 
 	override fun shouldBeSaved(): Boolean = false
@@ -250,6 +262,17 @@ class CompanionEntity(type: EntityType<CompanionEntity>, level: Level) : Pathfin
 	companion object {
 		val DATA_STATE: EntityDataAccessor<Byte> =
 			SynchedEntityData.defineId(CompanionEntity::class.java, EntityDataSerializers.BYTE)
+
+		val DATA_GLASS_COLOR: EntityDataAccessor<Byte> =
+			SynchedEntityData.defineId(CompanionEntity::class.java, EntityDataSerializers.BYTE)
+
+		/** Ordered list of dye color names matching DyeColor ordinal (0–15). */
+		val DYE_COLOR_NAMES = listOf(
+			"white", "orange", "magenta", "light_blue",
+			"yellow", "lime", "pink", "gray",
+			"light_gray", "cyan", "purple", "blue",
+			"brown", "green", "red", "black",
+		)
 
 		private const val NORMAL_SPEED = 0.15
 		const val EYE_HEIGHT = 0.45

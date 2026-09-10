@@ -374,7 +374,7 @@ class CompanionBrain(private val e: CompanionEntity, private val combat: Compani
 			Blocks.REDSTONE_ORE, Blocks.DEEPSLATE_REDSTONE_ORE,
 			Blocks.COPPER_ORE, Blocks.DEEPSLATE_COPPER_ORE,
 			Blocks.RAW_COPPER_BLOCK, Blocks.RAW_GOLD_BLOCK,
-			Blocks.SEA_LANTERN,
+			Blocks.EMERALD_BLOCK,
 			Blocks.CHEST, Blocks.ENDER_CHEST,
 			Blocks.AMETHYST_CLUSTER,
 			Blocks.BEACON,

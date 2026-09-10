@@ -1,6 +1,27 @@
 {
-	"model": {
-		"type": "minecraft:model",
-		"model": "ex3-companion:item/companion_core"
-	}
+    "model": {
+        "type": "minecraft:select",
+        "property": "minecraft:custom_model_data",
+        "index": 0,
+        "cases": [
+            { "when": "white", "model": { "type": "minecraft:model", "model": "ex3-companion:item/companion_core_white" } },
+            { "when": "orange", "model": { "type": "minecraft:model", "model": "ex3-companion:item/companion_core_orange" } },
+            { "when": "magenta", "model": { "type": "minecraft:model", "model": "ex3-companion:item/companion_core_magenta" } },
+            { "when": "light_blue", "model": { "type": "minecraft:model", "model": "ex3-companion:item/companion_core_light_blue" } },
+            { "when": "yellow", "model": { "type": "minecraft:model", "model": "ex3-companion:item/companion_core_yellow" } },
+            { "when": "lime", "model": { "type": "minecraft:model", "model": "ex3-companion:item/companion_core_lime" } },
+            { "when": "pink", "model": { "type": "minecraft:model", "model": "ex3-companion:item/companion_core_pink" } },
+            { "when": "gray", "model": { "type": "minecraft:model", "model": "ex3-companion:item/companion_core_gray" } },
+            { "when": "light_gray", "model": { "type": "minecraft:model", "model": "ex3-companion:item/companion_core_light_gray" } },
+            { "when": "cyan", "model": { "type": "minecraft:model", "model": "ex3-companion:item/companion_core_cyan" } },
+            { "when": "purple", "model": { "type": "minecraft:model", "model": "ex3-companion:item/companion_core_purple" } },
+            { "when": "blue", "model": { "type": "minecraft:model", "model": "ex3-companion:item/companion_core_blue" } },
+            { "when": "brown", "model": { "type": "minecraft:model", "model": "ex3-companion:item/companion_core_brown" } },
+            { "when": "green", "model": { "type": "minecraft:model", "model": "ex3-companion:item/companion_core_green" } },
+            { "when": "red", "model": { "type": "minecraft:model", "model": "ex3-companion:item/companion_core_red" } },
+            { "when": "black", "model": { "type": "minecraft:model", "model": "ex3-companion:item/companion_core_black" } },
+            { "when": "clear", "model": { "type": "minecraft:model", "model": "ex3-companion:item/companion_core" } }
+        ],
+        "fallback": { "type": "minecraft:model", "model": "ex3-companion:item/companion_core" }
+    }
 }

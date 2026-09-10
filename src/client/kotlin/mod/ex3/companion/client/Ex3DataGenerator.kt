@@ -76,6 +76,8 @@ private class Ex3EnglishLangProvider(
 		translationBuilder.add("ex3companion.config.combat.abortDistance", "Abort Distance")
 		translationBuilder.add("ex3companion.config.combat.xpPerKill", "XP Per Kill")
 		translationBuilder.add("ex3companion.config.combat.noTargetTimeout", "No Target Timeout")
+		translationBuilder.add("ex3companion.config.combat.staleTargetTimeout", "Stale Target Timeout")
+		translationBuilder.add("ex3companion.config.combat.ownerAbortDistance", "Owner Abort Distance")
 		translationBuilder.add("ex3companion.config.combat.combatMode", "Combat Mode")
 		// Healing
 		translationBuilder.add("ex3companion.config.healing.unlockLevel", "Unlock Level")
@@ -165,6 +167,8 @@ private class Ex3RussianLangProvider(
 		translationBuilder.add("ex3companion.config.combat.abortDistance", "Дистанция отступа")
 		translationBuilder.add("ex3companion.config.combat.xpPerKill", "Опыта за убийство")
 		translationBuilder.add("ex3companion.config.combat.noTargetTimeout", "Таймаут без цели")
+		translationBuilder.add("ex3companion.config.combat.staleTargetTimeout", "Таймаут застрявшей цели")
+		translationBuilder.add("ex3companion.config.combat.ownerAbortDistance", "Дистанция от владельца для отступа")
 		translationBuilder.add("ex3companion.config.combat.combatMode", "Режим боя")
 		// Healing
 		translationBuilder.add("ex3companion.config.healing.unlockLevel", "Уровень отпирания")

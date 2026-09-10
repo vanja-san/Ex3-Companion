@@ -190,6 +190,20 @@ object CompanionConfigFactory {
 				) { cfg.combat.noTargetTimeout = it },
 			)
 			.option(
+				intOption(
+					"ex3companion.config.combat.staleTargetTimeout",
+					"Ticks before disengage if target heals faster than damage",
+					cfg.combat.staleTargetTimeout, 20, 300,
+				) { cfg.combat.staleTargetTimeout = it },
+			)
+			.option(
+				doubleOption(
+					"ex3companion.config.combat.ownerAbortDistance",
+					"Distance from owner at which combat aborts",
+					cfg.combat.ownerAbortDistance, 5.0, 64.0, 1.0,
+				) { cfg.combat.ownerAbortDistance = it },
+			)
+			.option(
 				Option.createBuilder<CombatMode>()
 					.name(Component.translatable("ex3companion.config.combat.combatMode"))
 					.description(OptionDescription.of(Component.literal("Defender: fight mobs attacking owner. Aggressive: seek any hostile. Strategic: consider mob type.")))
