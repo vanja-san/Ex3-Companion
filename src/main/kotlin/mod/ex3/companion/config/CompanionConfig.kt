@@ -28,9 +28,9 @@ class CompanionConfig {
 		@Expose var base: Float = 20f
 		@Expose var perLevel: Float = 2f
 		@Expose var cap: Float = 60f
-		@Expose var regenPerTick: Float = 0.05f
+		@Expose var regenPerTick: Float = 0.025f
 		@Expose var regenLevelScale: Float = 0.05f
-		@Expose var reviveDelayTicks: Long = 600L
+		@Expose var reviveDelayTicks: Long = 0L
 		@Expose var invulnerable: Boolean = false
 	}
 
@@ -43,6 +43,8 @@ class CompanionConfig {
 		@Expose var intervalMin: Int = 6
 		@Expose var searchRadius: Double = 16.0
 		@Expose var fireRange: Double = 10.0
+		/** Preferred horizontal standoff distance from the target while firing (ranged attacker). */
+		@Expose var preferredRange: Double = 6.0
 		@Expose var abortDistance: Double = 20.0
 		/** Distance from the owner at which combat aborts (owner ran away from the fight). */
 		@Expose var ownerAbortDistance: Double = 30.0
@@ -109,6 +111,7 @@ class CompanionConfig {
 		private val GSON = GsonBuilder().setPrettyPrinting().create()
 		private val FILE = File(FabricLoader.getInstance().configDir.toFile(), "ex3-companion.json")
 
+		@Volatile
 		private var instance: CompanionConfig? = null
 
 		fun load() {
@@ -137,6 +140,16 @@ class CompanionConfig {
 			}
 		}
 
-		fun get(): CompanionConfig = instance ?: CompanionConfig().also { instance = it }
+		fun get(): CompanionConfig {
+			// Double-checked locking: safe if get() is called before load() from
+			// multiple threads (e.g. entity attribute setup during world load).
+			val current = instance
+			if (current != null) return current
+			synchronized(this) {
+				val recheck = instance
+				if (recheck != null) return recheck
+				return CompanionConfig().also { instance = it }
+			}
+		}
 	}
 }

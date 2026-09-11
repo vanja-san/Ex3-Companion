@@ -99,8 +99,18 @@ tasks.processResources {
 	}
 }
 
+// Per-machine javac override. The Gradle extension can launch Gradle with a
+// different JVM than the CLI, which breaks `--release 25` on older JDKs.
+// Set `javac.path` in ~/.gradle/gradle.properties (user-level, NOT tracked by
+// git) to fork javac from a specific JDK. CI never sets it, so it stays on the
+// runner's JDK from actions/setup-java.
+val javacPath = providers.gradleProperty("javac.path").orNull
 tasks.withType<JavaCompile>().configureEach {
 	options.release = 25
+	if (javacPath != null) {
+		// Setting the executable implicitly enables forking in Gradle 9.
+		options.forkOptions.executable = javacPath
+	}
 }
 
 // Client Java mixins import Kotlin classes from the main source set.

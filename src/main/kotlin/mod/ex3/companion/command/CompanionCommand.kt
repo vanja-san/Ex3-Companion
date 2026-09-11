@@ -12,14 +12,19 @@ import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.permissions.Permissions
 
 /**
- * TEMP debug command: /companioncore give
+ * Debug command: /companioncore give
  * Hands the sender a companion core so the slot can be tested manually.
  * Requires moderator permissions (op level 2+) on a server.
- * TODO: remove before release or gate behind a --enable-experimental CLI flag.
+ *
+ * Only registered when the JVM flag `-Dex3companion.debug=true` is set, so it
+ * never ships in a normal release build.
  */
 object CompanionCommand {
 
+	private val DEBUG_ENABLED: Boolean = System.getProperty("ex3companion.debug") == "true"
+
 	fun register() {
+		if (!DEBUG_ENABLED) return
 		CommandRegistrationCallback.EVENT.register(
 			CommandRegistrationCallback { dispatcher: CommandDispatcher<CommandSourceStack>, _, _ ->
 				dispatcher.register(

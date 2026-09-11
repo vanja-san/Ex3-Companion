@@ -17,6 +17,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes
 import net.minecraft.world.entity.ai.navigation.FlyingPathNavigation
 import net.minecraft.world.entity.ai.navigation.PathNavigation
 import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.DyeColor
 import net.minecraft.world.level.ClipContext
 import net.minecraft.world.level.Level
 import net.minecraft.world.phys.HitResult
@@ -132,7 +133,12 @@ class CompanionEntity(type: EntityType<CompanionEntity>, level: Level) : Pathfin
 			cachedOwner = null
 			cachedOwnerId = null
 		}
-		val found = level().players().firstOrNull { it.uuid == id }
+		// ServerLevel keeps an O(1) UUID → player map; the client fallback is a
+		// linear scan, but the client only ever has a handful of players.
+		val found = when (val lvl = level()) {
+			is ServerLevel -> lvl.getPlayerByUUID(id)
+			else -> lvl.players().firstOrNull { it.uuid == id }
+		}
 		cachedOwner = found
 		cachedOwnerId = id
 		return found
@@ -168,8 +174,7 @@ class CompanionEntity(type: EntityType<CompanionEntity>, level: Level) : Pathfin
 			return if (idx < 0) "clear" else DYE_COLOR_NAMES.getOrElse(idx) { "clear" }
 		}
 		set(value) {
-			val idx = DYE_COLOR_NAMES.indexOf(value)
-			entityData[DATA_GLASS_COLOR] = if (idx < 0) (-1).toByte() else idx.toByte()
+			entityData[DATA_GLASS_COLOR] = glassColorIndex(value).toByte()
 		}
 
 	fun readLevel(): Int =
@@ -267,12 +272,14 @@ class CompanionEntity(type: EntityType<CompanionEntity>, level: Level) : Pathfin
 			SynchedEntityData.defineId(CompanionEntity::class.java, EntityDataSerializers.BYTE)
 
 		/** Ordered list of dye color names matching DyeColor ordinal (0–15). */
-		val DYE_COLOR_NAMES = listOf(
-			"white", "orange", "magenta", "light_blue",
-			"yellow", "lime", "pink", "gray",
-			"light_gray", "cyan", "purple", "blue",
-			"brown", "green", "red", "black",
-		)
+		val DYE_COLOR_NAMES: List<String> = DyeColor.entries.map { it.serializedName }
+
+		/** Reverse lookup: color name → DyeColor ordinal, for O(1) glass color writes. */
+		private val GLASS_COLOR_INDEX: Map<String, Int> =
+			DYE_COLOR_NAMES.withIndex().associate { (i, name) -> name to i }
+
+		/** Returns the DyeColor ordinal for a glass color name, or -1 if unknown/clear. */
+		fun glassColorIndex(name: String): Int = GLASS_COLOR_INDEX[name] ?: -1
 
 		private const val NORMAL_SPEED = 0.15
 		const val EYE_HEIGHT = 0.45

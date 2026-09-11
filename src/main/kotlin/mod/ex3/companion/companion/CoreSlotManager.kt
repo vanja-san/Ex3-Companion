@@ -66,6 +66,15 @@ object CoreSlotManager {
 		}
 	}
 
+	/**
+	 * Returns the player's backing container if one already exists, without creating it.
+	 * Used by per-tick scans so players without a companion core never allocate a container.
+	 */
+	private fun getContainerIfPresent(player: Player): CoreSlotBackingContainer? {
+		val map = if (player.level().isClientSide) clientContainers else serverContainers
+		return map[player.uuid]
+	}
+
 	/** Records the companion-core slot after it is injected into the inventory menu. */
 	@JvmStatic
 	fun setCompanionSlot(player: Player, slot: CompanionCoreSlot) {
@@ -106,6 +115,12 @@ object CoreSlotManager {
 		// While recovering from the owner's death, do not summon yet.
 		val data = readData(stack)
 		if (data.reviveAt > player.level().gameTime) return
+
+		// Don't spawn during revive regeneration — wait until health is fully restored.
+		if (data.reviveAt > 0) {
+			val max = CompanionData.maxHealth(data.level)
+			if (data.health < max) return
+		}
 
 		val existing = findCompanion(player)
 		if (existing != null) {
@@ -202,7 +217,11 @@ object CoreSlotManager {
 	/** On login: the container was seeded by the save-data mixin; summon if needed. */
 	fun onPlayerJoin(player: Player) {
 		if (player.level().isClientSide) return
-		onSlotChanged(player)
+		// Only run lifecycle if the player actually has a container (i.e. had a core).
+		// Avoids allocating a container for every player who joins.
+		if (getContainerIfPresent(player) != null) {
+			onSlotChanged(player)
+		}
 	}
 
 	/** On logout: quietly remove the entity; the core stays in the slot.
@@ -278,7 +297,10 @@ object CoreSlotManager {
 	/** After respawn: re-summon the companion next to the player with stored health. */
 	fun onPlayerRespawn(player: Player) {
 		if (player.level().isClientSide) return
-		onSlotChanged(player)
+		// Only run lifecycle if the player actually has a container (i.e. had a core).
+		if (getContainerIfPresent(player) != null) {
+			onSlotChanged(player)
+		}
 	}
 
 	/**
@@ -324,9 +346,9 @@ object CoreSlotManager {
 	 * for a companion core item. Returns the stack or null.
 	 */
 	private fun findCoreAnywhere(player: Player): ItemStack? {
-		// Check companion slot first.
-		val slotStack = getOrCreateContainer(player).getItem(0)
-		if (slotStack.`is`(ModItems.COMPANION_CORE)) return slotStack
+		// Check companion slot first (without creating a container for players without cores).
+		val slotStack = getContainerIfPresent(player)?.getItem(0)
+		if (slotStack != null && slotStack.`is`(ModItems.COMPANION_CORE)) return slotStack
 
 		// Search player inventory: main (0-35), armor (36-39), offhand (40).
 		val inv = player.inventory

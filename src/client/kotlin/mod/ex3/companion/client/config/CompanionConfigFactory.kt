@@ -60,35 +60,35 @@ object CompanionConfigFactory {
                 floatOption(
                     "ex3companion.config.health.base",
                     "Base HP at level 1",
-                    cfg.health.base, 1f, 100f, 1f,
+                    { cfg.health.base }, 1f, 100f, 1f,
                 ) { cfg.health.base = it },
             )
             .option(
                 floatOption(
                     "ex3companion.config.health.perLevel",
                     "HP added per level",
-                    cfg.health.perLevel, 0f, 20f, 0.5f,
+                    { cfg.health.perLevel }, 0f, 20f, 0.5f,
                 ) { cfg.health.perLevel = it },
             )
             .option(
                 floatOption(
                     "ex3companion.config.health.cap",
                     "Maximum possible HP",
-                    cfg.health.cap, 10f, 200f, 5f,
+                    { cfg.health.cap }, 10f, 200f, 5f,
                 ) { cfg.health.cap = it },
             )
             .option(
                 floatOption(
                     "ex3companion.config.health.regenPerTick",
                     "HP regenerated per tick",
-                    cfg.health.regenPerTick, 0f, 2f, 0.01f,
+                    { cfg.health.regenPerTick }, 0f, 2f, 0.01f,
                 ) { cfg.health.regenPerTick = it },
             )
             .option(
                 floatOption(
                     "ex3companion.config.health.regenLevelScale",
                     "Regen speed increase per level (e.g. 0.05 = +5%/level)",
-                    cfg.health.regenLevelScale, 0f, 1f, 0.01f,
+                    { cfg.health.regenLevelScale }, 0f, 1f, 0.01f,
                 ) { cfg.health.regenLevelScale = it },
             )
             .option(
@@ -116,91 +116,98 @@ object CompanionConfigFactory {
                 floatOption(
                     "ex3companion.config.combat.damageBase",
                     "Base attack damage",
-                    cfg.combat.damageBase, 0f, 30f, 0.5f,
+                    { cfg.combat.damageBase }, 0f, 30f, 0.5f,
                 ) { cfg.combat.damageBase = it },
             )
             .option(
                 floatOption(
                     "ex3companion.config.combat.damagePerLevel",
                     "Damage added per level",
-                    cfg.combat.damagePerLevel, 0f, 10f, 0.5f,
+                    { cfg.combat.damagePerLevel }, 0f, 10f, 0.5f,
                 ) { cfg.combat.damagePerLevel = it },
             )
             .option(
                 floatOption(
                     "ex3companion.config.combat.damageCap",
                     "Maximum attack damage",
-                    cfg.combat.damageCap, 1f, 50f, 1f,
+                    { cfg.combat.damageCap }, 1f, 50f, 1f,
                 ) { cfg.combat.damageCap = it },
             )
             .option(
                 intOption(
                     "ex3companion.config.combat.intervalBase",
                     "Ticks between attacks at level 1",
-                    cfg.combat.intervalBase, 1, 200,
+                    { cfg.combat.intervalBase }, 1, 200,
                 ) { cfg.combat.intervalBase = it },
             )
             .option(
                 intOption(
                     "ex3companion.config.combat.intervalPerLevel",
                     "Interval reduction per level",
-                    cfg.combat.intervalPerLevel, 0, 20,
+                    { cfg.combat.intervalPerLevel }, 0, 20,
                 ) { cfg.combat.intervalPerLevel = it },
             )
             .option(
                 intOption(
                     "ex3companion.config.combat.intervalMin",
                     "Minimum attack interval in ticks",
-                    cfg.combat.intervalMin, 1, 100,
+                    { cfg.combat.intervalMin }, 1, 100,
                 ) { cfg.combat.intervalMin = it },
             )
             .option(
                 doubleOption(
                     "ex3companion.config.combat.searchRadius",
                     "Blocks to scan for hostiles",
-                    cfg.combat.searchRadius, 4.0, 64.0, 1.0,
+                    { cfg.combat.searchRadius }, 4.0, 64.0, 1.0,
                 ) { cfg.combat.searchRadius = it },
             )
             .option(
                 doubleOption(
                     "ex3companion.config.combat.fireRange",
                     "Max distance to fire beam",
-                    cfg.combat.fireRange, 2.0, 32.0, 0.5,
+                    { cfg.combat.fireRange }, 2.0, 32.0, 0.5,
                 ) { cfg.combat.fireRange = it },
+            )
+            .option(
+                doubleOption(
+                    "ex3companion.config.combat.preferredRange",
+                    "Preferred hover distance from target while firing",
+                    { cfg.combat.preferredRange }, 2.0, 32.0, 0.5,
+                ) { cfg.combat.preferredRange = it },
             )
             .option(
                 doubleOption(
                     "ex3companion.config.combat.abortDistance",
                     "Abort combat beyond this distance",
-                    cfg.combat.abortDistance, 5.0, 64.0, 1.0,
+                    { cfg.combat.abortDistance }, 5.0, 64.0, 1.0,
                 ) { cfg.combat.abortDistance = it },
             )
             .option(
                 intOption(
                     "ex3companion.config.combat.xpPerKill",
                     "XP granted per kill assist",
-                    cfg.combat.xpPerKill, 1, 100,
+                    { cfg.combat.xpPerKill }, 1, 100,
                 ) { cfg.combat.xpPerKill = it },
             )
 			.option(
 				intOption(
 					"ex3companion.config.combat.noTargetTimeout",
 					"Ticks before disengage if mob stops attacking",
-					cfg.combat.noTargetTimeout, 20, 600,
+					{ cfg.combat.noTargetTimeout }, 20, 600,
 				) { cfg.combat.noTargetTimeout = it },
 			)
 			.option(
 				intOption(
 					"ex3companion.config.combat.staleTargetTimeout",
 					"Ticks before disengage if target heals faster than damage",
-					cfg.combat.staleTargetTimeout, 20, 300,
+					{ cfg.combat.staleTargetTimeout }, 20, 300,
 				) { cfg.combat.staleTargetTimeout = it },
 			)
 			.option(
 				doubleOption(
 					"ex3companion.config.combat.ownerAbortDistance",
 					"Distance from owner at which combat aborts",
-					cfg.combat.ownerAbortDistance, 5.0, 64.0, 1.0,
+					{ cfg.combat.ownerAbortDistance }, 5.0, 64.0, 1.0,
 				) { cfg.combat.ownerAbortDistance = it },
 			)
 			.option(
@@ -220,28 +227,28 @@ object CompanionConfigFactory {
                 intOption(
                     "ex3companion.config.healing.unlockLevel",
                     "Level to unlock owner healing",
-                    cfg.healing.unlockLevel, 1, 50,
+                    { cfg.healing.unlockLevel }, 1, 50,
                 ) { cfg.healing.unlockLevel = it },
             )
             .option(
                 floatOption(
                     "ex3companion.config.healing.basePerTick",
                     "Base HP healed per tick",
-                    cfg.healing.basePerTick, 0f, 1f, 0.005f,
+                    { cfg.healing.basePerTick }, 0f, 1f, 0.005f,
                 ) { cfg.healing.basePerTick = it },
             )
             .option(
                 floatOption(
                     "ex3companion.config.healing.perLevelAbove",
                     "Extra heal per level above unlock",
-                    cfg.healing.perLevelAbove, 0f, 0.1f, 0.001f,
+                    { cfg.healing.perLevelAbove }, 0f, 0.1f, 0.001f,
                 ) { cfg.healing.perLevelAbove = it },
             )
             .option(
                 doubleOption(
                     "ex3companion.config.healing.range",
                     "Max distance for healing",
-                    cfg.healing.range, 1.0, 16.0, 0.5,
+                    { cfg.healing.range }, 1.0, 16.0, 0.5,
                 ) { cfg.healing.range = it },
             )
             .build()
@@ -253,70 +260,70 @@ object CompanionConfigFactory {
                 intOption(
                     "ex3companion.config.explore.cooldownMin",
                     "Min ticks between explorations (~25 s at 20 TPS)",
-                    cfg.explore.cooldownMin, 100, 2000,
+                    { cfg.explore.cooldownMin }, 100, 2000,
                 ) { cfg.explore.cooldownMin = it },
             )
             .option(
                 intOption(
                     "ex3companion.config.explore.cooldownVariance",
                     "Extra random ticks added to cooldown",
-                    cfg.explore.cooldownVariance, 0, 2000,
+                    { cfg.explore.cooldownVariance }, 0, 2000,
                 ) { cfg.explore.cooldownVariance = it },
             )
             .option(
                 floatOption(
                     "ex3companion.config.explore.chance",
                     "Chance to explore when cooldown expires",
-                    cfg.explore.chance, 0f, 1f, 0.05f,
+                    { cfg.explore.chance }, 0f, 1f, 0.05f,
                 ) { cfg.explore.chance = it },
             )
             .option(
                 intOption(
                     "ex3companion.config.explore.durationMin",
                     "Min exploration duration in ticks",
-                    cfg.explore.durationMin, 20, 600,
+                    { cfg.explore.durationMin }, 20, 600,
                 ) { cfg.explore.durationMin = it },
             )
             .option(
                 intOption(
                     "ex3companion.config.explore.durationVariance",
                     "Extra random ticks added to duration",
-                    cfg.explore.durationVariance, 0, 600,
+                    { cfg.explore.durationVariance }, 0, 600,
                 ) { cfg.explore.durationVariance = it },
             )
             .option(
                 doubleOption(
                     "ex3companion.config.explore.maxOwnerDistance",
                     "Max distance from owner to allow exploration",
-                    cfg.explore.maxOwnerDistance, 8.0, 128.0, 1.0,
+                    { cfg.explore.maxOwnerDistance }, 8.0, 128.0, 1.0,
                 ) { cfg.explore.maxOwnerDistance = it },
             )
             .option(
                 doubleOption(
                     "ex3companion.config.explore.abortDistance",
                     "Abort exploration beyond this distance",
-                    cfg.explore.abortDistance, 10.0, 128.0, 1.0,
+                    { cfg.explore.abortDistance }, 10.0, 128.0, 1.0,
                 ) { cfg.explore.abortDistance = it },
             )
             .option(
                 intOption(
                     "ex3companion.config.explore.scanIntervalMin",
                     "Min ticks between scan rotations at POI",
-                    cfg.explore.scanIntervalMin, 10, 200,
+                    { cfg.explore.scanIntervalMin }, 10, 200,
                 ) { cfg.explore.scanIntervalMin = it },
             )
             .option(
                 intOption(
                     "ex3companion.config.explore.scanIntervalVariance",
                     "Extra random ticks added to scan interval",
-                    cfg.explore.scanIntervalVariance, 0, 200,
+                    { cfg.explore.scanIntervalVariance }, 0, 200,
                 ) { cfg.explore.scanIntervalVariance = it },
             )
             .option(
                 intOption(
                     "ex3companion.config.explore.searchRadius",
                     "Blocks to scan for interesting blocks",
-                    cfg.explore.searchRadius, 4, 64,
+                    { cfg.explore.searchRadius }, 4, 64,
                 ) { cfg.explore.searchRadius = it },
             )
             .build()
@@ -328,14 +335,14 @@ object CompanionConfigFactory {
                 intOption(
                     "ex3companion.config.xp.levelCap",
                     "Maximum companion level",
-                    cfg.xp.levelCap, 1, 100,
+                    { cfg.xp.levelCap }, 1, 100,
                 ) { cfg.xp.levelCap = it },
             )
             .option(
                 intOption(
                     "ex3companion.config.xp.formulaMultiplier",
                     "XP required = level × multiplier",
-                    cfg.xp.formulaMultiplier, 1, 100,
+                    { cfg.xp.formulaMultiplier }, 1, 100,
                 ) { cfg.xp.formulaMultiplier = it },
             )
             .build()
@@ -347,56 +354,56 @@ object CompanionConfigFactory {
                 doubleOption(
                     "ex3companion.config.movement.normalSpeed",
                     "Base follow speed",
-                    cfg.movement.normalSpeed, 0.01, 2.0, 0.01,
+                    { cfg.movement.normalSpeed }, 0.01, 2.0, 0.01,
                 ) { cfg.movement.normalSpeed = it },
             )
             .option(
                 doubleOption(
                     "ex3companion.config.movement.fastSpeed",
                     "Speed when lagging behind",
-                    cfg.movement.fastSpeed, 0.05, 3.0, 0.05,
+                    { cfg.movement.fastSpeed }, 0.05, 3.0, 0.05,
                 ) { cfg.movement.fastSpeed = it },
             )
             .option(
                 doubleOption(
                     "ex3companion.config.movement.catchUpSpeed",
                     "Sprint speed to catch up",
-                    cfg.movement.catchUpSpeed, 0.1, 5.0, 0.1,
+                    { cfg.movement.catchUpSpeed }, 0.1, 5.0, 0.1,
                 ) { cfg.movement.catchUpSpeed = it },
             )
             .option(
                 doubleOption(
                     "ex3companion.config.movement.exploreSpeed",
                     "Speed while exploring",
-                    cfg.movement.exploreSpeed, 0.01, 2.0, 0.01,
+                    { cfg.movement.exploreSpeed }, 0.01, 2.0, 0.01,
                 ) { cfg.movement.exploreSpeed = it },
             )
             .option(
                 doubleOption(
                     "ex3companion.config.movement.teleportDistance",
                     "Distance at which companion teleports",
-                    cfg.movement.teleportDistance, 8.0, 256.0, 8.0,
+                    { cfg.movement.teleportDistance }, 8.0, 256.0, 8.0,
                 ) { cfg.movement.teleportDistance = it },
             )
             .option(
                 doubleOption(
                     "ex3companion.config.movement.accel",
                     "Velocity smoothing (0-1, higher = snappier)",
-                    cfg.movement.accel, 0.05, 1.0, 0.05,
+                    { cfg.movement.accel }, 0.05, 1.0, 0.05,
                 ) { cfg.movement.accel = it },
             )
             .option(
                 doubleOption(
                     "ex3companion.config.movement.followGain",
                     "Proportional slow-down near goal",
-                    cfg.movement.followGain, 0.05, 1.0, 0.05,
+                    { cfg.movement.followGain }, 0.05, 1.0, 0.05,
                 ) { cfg.movement.followGain = it },
             )
             .option(
                 doubleOption(
                     "ex3companion.config.movement.maxVertical",
                     "Max vertical speed (blocks/tick)",
-                    cfg.movement.maxVertical, 0.05, 2.0, 0.05,
+                    { cfg.movement.maxVertical }, 0.05, 2.0, 0.05,
                 ) { cfg.movement.maxVertical = it },
             )
             .build()
@@ -406,7 +413,7 @@ object CompanionConfigFactory {
     private fun floatOption(
         key: String,
         desc: String,
-        current: Float,
+        getter: () -> Float,
         min: Float,
         max: Float,
         step: Float,
@@ -415,14 +422,14 @@ object CompanionConfigFactory {
         Option.createBuilder<Float>()
             .name(Component.translatable(key))
             .description(OptionDescription.of(Component.literal(desc)))
-            .binding(Binding.generic(current, { current }, setter))
+            .binding(Binding.generic(getter(), getter, setter))
             .controller { opt -> FloatSliderControllerBuilder.create(opt).range(min, max).step(step) }
             .build()
 
     private fun intOption(
         key: String,
         desc: String,
-        current: Int,
+        getter: () -> Int,
         min: Int,
         max: Int,
         setter: (Int) -> Unit,
@@ -430,14 +437,14 @@ object CompanionConfigFactory {
         Option.createBuilder<Int>()
             .name(Component.translatable(key))
             .description(OptionDescription.of(Component.literal(desc)))
-            .binding(Binding.generic(current, { current }, setter))
+            .binding(Binding.generic(getter(), getter, setter))
             .controller { opt -> IntegerFieldControllerBuilder.create(opt).min(min).max(max) }
             .build()
 
     private fun doubleOption(
         key: String,
         desc: String,
-        current: Double,
+        getter: () -> Double,
         min: Double,
         max: Double,
         step: Double,
@@ -446,7 +453,7 @@ object CompanionConfigFactory {
         Option.createBuilder<Double>()
             .name(Component.translatable(key))
             .description(OptionDescription.of(Component.literal(desc)))
-            .binding(Binding.generic(current, { current }, setter))
+            .binding(Binding.generic(getter(), getter, setter))
             .controller { opt -> DoubleSliderControllerBuilder.create(opt).range(min, max).step(step) }
             .build()
 }

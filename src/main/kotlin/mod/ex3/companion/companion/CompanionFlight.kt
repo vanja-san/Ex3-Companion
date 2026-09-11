@@ -4,9 +4,11 @@ import mod.ex3.companion.config.CompanionConfig
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.monster.Monster
 import net.minecraft.world.entity.projectile.Projectile
 import net.minecraft.world.level.ClipContext
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.DoorBlock
 import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
 import kotlin.math.abs
@@ -30,6 +32,7 @@ class CompanionFlight(private val e: CompanionEntity) {
 	private var recoveryWaypoint: Vec3? = null
 	private var failedDirections = mutableSetOf<Int>()
 	private var doorScanCooldown: Int = 0
+	private var doorOpenCooldown: Int = 0
 
 	/** Ticks the companion has been fully stuck with no escape. */
 	var hardStuckTicks: Int = 0
@@ -55,6 +58,7 @@ class CompanionFlight(private val e: CompanionEntity) {
 			hoverInPlace()
 			return
 		}
+		openNearbyDoors()
 
 		val pos = e.position()
 		val movCfg = CompanionConfig.get().movement
@@ -159,6 +163,7 @@ class CompanionFlight(private val e: CompanionEntity) {
 			dm = applyOwnerAvoidance(dm)
 			dm = applyWallAvoidance(dm)
 			dm = applyProjectileDodge(dm)
+			dm = applyMobAvoidance(dm)
 		}
 
 		val h = sqrt((dm.x * dm.x) + (dm.z * dm.z))
@@ -255,8 +260,8 @@ class CompanionFlight(private val e: CompanionEntity) {
 		doorScanCooldown--
 
 		// Pre-check: is there a ceiling nearby? Penalize upward probes if so.
-		val nearCeiling = ceilingAbove() != null &&
-			(ceilingAbove()!! - (e.y + e.bbHeight)) < CEILING_CLEARANCE * 2
+		val ceilY = ceilingAbove()
+		val nearCeiling = ceilY != null && (ceilY - (e.y + e.bbHeight)) < CEILING_CLEARANCE * 2
 
 		var best: Vec3? = null
 		var bestScore = Double.NEGATIVE_INFINITY
@@ -284,8 +289,8 @@ class CompanionFlight(private val e: CompanionEntity) {
 			// Penalize upward probes when near ceiling; penalize downward probes when near floor.
 			var verticalPenalty = 0.0
 			if (nearCeiling && dir.y > 0) verticalPenalty = NEAR_CEILING_PENALTY
-			val nearFloor = floorBelow() != null &&
-				(e.y - floorBelow()!!) < GROUND_CLEARANCE * 2
+			val floorY = floorBelow()
+			val nearFloor = floorY != null && (e.y - floorY) < GROUND_CLEARANCE * 2
 			if (nearFloor && dir.y < 0) verticalPenalty = NEAR_FLOOR_PENALTY
 
 			val score = (openness * OPENNESS_WEIGHT) +
@@ -343,16 +348,90 @@ class CompanionFlight(private val e: CompanionEntity) {
 		return null
 	}
 
+	/**
+	 * Opens a nearby closed wooden door, but only when it actually blocks the
+	 * companion's path to its flight target AND the companion is stuck (not
+	 * making progress toward the goal). This prevents opening doors the
+	 * companion is merely hovering near. Throttled to avoid spamming.
+	 */
+	private fun openNearbyDoors() {
+		if (doorOpenCooldown > 0) {
+			doorOpenCooldown--
+			return
+		}
+		doorOpenCooldown = DOOR_OPEN_INTERVAL
+
+		val level = e.level()
+		val goal = e.flightTarget ?: return
+		val center = e.blockPosition()
+		val r = DOOR_OPEN_RADIUS
+
+		// Only open a door when we're actually blocked from reaching the goal.
+		val blocked = stuckTicks >= DOOR_STUCK_THRESHOLD
+
+		for (pos in BlockPos.betweenClosed(center.offset(-r, -r, -r), center.offset(r, r, r))) {
+			if (!DoorBlock.isWoodenDoor(level, pos)) continue
+			val state = level.getBlockState(pos)
+			if (state.getValue(DoorBlock.OPEN)) continue
+
+			// The door must be between us and the goal (roughly in the direction of travel).
+			val doorCenter = Vec3(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5)
+			val toDoor = doorCenter.subtract(e.position())
+			val distToDoor = toDoor.length()
+			if (distToDoor < 1e-3) continue
+			val toGoal = goal.subtract(e.position())
+			val distToGoal = toGoal.length()
+			if (distToGoal < 1e-3) continue
+			val inPath = distToDoor < distToGoal &&
+				toGoal.normalize().dot(toDoor.normalize()) > DOOR_PATH_DOT
+
+			if (blocked && inPath) {
+				(state.block as DoorBlock).setOpen(e, level, state, pos, true)
+				return
+			}
+		}
+	}
+
 	private fun applyOwnerAvoidance(dm: Vec3): Vec3 {
 		val owner = e.ownerPlayer() ?: return dm
 		val dx = e.x - owner.x
 		val dz = e.z - owner.z
 		val distSq = (dx * dx) + (dz * dz)
-		if (distSq !in (1e-4..<OWNER_AVOID_RADIUS_SQ)) return dm
-		val dist = sqrt(distSq)
-		val nx = dx / dist
-		val nz = dz / dist
-		return dm.add(Vec3(nx * AVOID_FORCE, 0.0, nz * AVOID_FORCE))
+
+		var result = dm
+
+		// Horizontal avoidance when close to the owner.
+		if (distSq in (1e-4..<OWNER_AVOID_RADIUS_SQ)) {
+			val dist = sqrt(distSq)
+			val nx = dx / dist
+			val nz = dz / dist
+			result = result.add(Vec3(nx * AVOID_FORCE, 0.0, nz * AVOID_FORCE))
+		}
+
+		// While following, descend back to the follow height if we climbed too high
+		// (e.g. to let the owner pass in a narrow corridor).
+		if (!e.isAttacking && !e.isExploring) {
+			val followHeight = owner.y + FOLLOW_HEIGHT_REFERENCE
+			if (e.y > followHeight + DESCEND_MARGIN) {
+				val excess = e.y - (followHeight + DESCEND_MARGIN)
+				result = Vec3(result.x, result.y - (excess * DESCEND_FORCE), result.z)
+
+				// If a floor is close below (e.g. a roof), we can't descend here —
+				// move horizontally toward the owner to get clear of the obstruction.
+				val floorY = floorBelow()
+				if (floorY != null && (e.y - floorY) < DESCEND_BLOCKED_DIST) {
+					val dist = sqrt(distSq)
+					if (dist > 1e-3) {
+						val nx = dx / dist
+						val nz = dz / dist
+						// Toward the owner (opposite of the avoidance direction).
+						result = Vec3(result.x - (nx * ROOF_CLEAR_FORCE), result.y, result.z - (nz * ROOF_CLEAR_FORCE))
+					}
+				}
+			}
+		}
+
+		return result
 	}
 
 	private fun applyWallAvoidance(dm: Vec3): Vec3 {
@@ -376,8 +455,15 @@ class CompanionFlight(private val e: CompanionEntity) {
 				val into = (result.x * n.x) + (result.z * n.z)
 				if (into < 0) {
 					result = Vec3(result.x - (n.x * into), result.y, result.z - (n.z * into))
-					// Add upward bias when hitting a wall (helps climb over obstacles).
-					result = Vec3(result.x, result.y + WALL_CLIMB_BIAS, result.z)
+					// Add upward bias when hitting a wall (helps climb over obstacles),
+					// unless the owner is close — avoids climbing up in narrow corridors.
+					val owner = e.ownerPlayer()
+					val ownerClose = owner != null && e.distanceToSqr(owner) < OWNER_AVOID_RADIUS_SQ
+					val ceilY = ceilingAbove()
+					val nearCeiling = ceilY != null && (ceilY - (e.y + e.bbHeight)) < CLIMB_CEILING_LIMIT
+					if (!ownerClose && !nearCeiling) {
+						result = Vec3(result.x, result.y + WALL_CLIMB_BIAS, result.z)
+					}
 				}
 			}
 		}
@@ -446,6 +532,36 @@ class CompanionFlight(private val e: CompanionEntity) {
 		return if (dodge.lengthSqr() > 1e-6) dm.add(dodge) else dm
 	}
 
+	/**
+	 * Pushes the companion away from nearby hostile mobs (melee attackers that
+	 * swarm it during combat). Applies a dodge force to the velocity so the
+	 * companion keeps distance from every threat, not just its current target.
+	 */
+	private fun applyMobAvoidance(dm: Vec3): Vec3 {
+		val level = e.level()
+		val pos = e.position()
+		var avoidance = Vec3.ZERO
+
+		val nearby = level.getEntitiesOfClass(
+			Monster::class.java,
+			e.boundingBox.inflate(MOB_AVOID_RADIUS),
+		) { it.isAlive && it.distanceToSqr(e) < MOB_AVOID_RADIUS_SQ }
+
+		for (mob in nearby) {
+			val toCompanion = pos.subtract(mob.position())
+			val dist = toCompanion.length()
+			if (dist < 1e-3) continue
+			val strength = (MOB_AVOID_RADIUS - dist) / MOB_AVOID_RADIUS
+			avoidance = avoidance.add(toCompanion.normalize().scale(strength))
+		}
+		if (avoidance.lengthSqr() > 1e-6) {
+			val len = avoidance.length()
+			avoidance = avoidance.scale(1.0 / len)  // normalize
+		}
+
+		return if (avoidance.lengthSqr() > 1e-6) dm.add(avoidance.scale(MOB_AVOID_FORCE)) else dm
+	}
+
 	companion object {
 		// Flight physics
 		const val ARRIVAL = 0.05
@@ -463,15 +579,29 @@ class CompanionFlight(private val e: CompanionEntity) {
 		private const val OWNER_AVOID_RADIUS_SQ = 5.76
 		private const val AVOID_FORCE = 0.06
 
+		// Descend back to follow height (narrow-corridor / roof-stuck fix)
+		private const val FOLLOW_HEIGHT_REFERENCE = 1.5
+		private const val DESCEND_MARGIN = 0.3
+		private const val DESCEND_FORCE = 0.15
+		private const val DESCEND_BLOCKED_DIST = 2.0
+		private const val ROOF_CLEAR_FORCE = 0.15
+
 		// Wall avoidance
 		private const val WALL_LOOKAHEAD = 1.4
 		private const val WALL_CLIMB_BIAS = 0.03
+		/** Max gap (blocks) between companion top and ceiling below which climb bias is disabled. */
+		private const val CLIMB_CEILING_LIMIT = 2.0
 
 		// Projectile dodge
 		private const val DODGE_SCAN_RADIUS = 8.0
 		private const val DODGE_APPROACH_THRESHOLD = 0.5
 		private const val DODGE_TTI_MAX = 40.0
 		private const val DODGE_FORCE = 0.15
+
+		// Hostile-mob avoidance (melee attackers)
+		private const val MOB_AVOID_RADIUS = 3.0
+		private const val MOB_AVOID_RADIUS_SQ = MOB_AVOID_RADIUS * MOB_AVOID_RADIUS
+		private const val MOB_AVOID_FORCE = 0.12
 
 		// Stuck recovery
 		private const val STUCK_THRESHOLD = 30
@@ -483,6 +613,12 @@ class CompanionFlight(private val e: CompanionEntity) {
 		private const val DOOR_SCAN_RADIUS = 4
 		private const val DOOR_SCAN_COOLDOWN = 40
 		private const val DOOR_MIN_CLEARANCE = 2
+		private const val DOOR_OPEN_RADIUS = 2
+		private const val DOOR_OPEN_INTERVAL = 20
+		/** Ticks of being stuck before the companion opens a blocking door. */
+		private const val DOOR_STUCK_THRESHOLD = 10
+		/** Min dot product for a door to count as "in the path" to the goal. */
+		private const val DOOR_PATH_DOT = 0.5
 		private const val OPENNESS_WEIGHT = 2.0
 		private const val VERTICAL_SPACE_WEIGHT = 1.0
 		private const val ALIGNMENT_WEIGHT = 1.5

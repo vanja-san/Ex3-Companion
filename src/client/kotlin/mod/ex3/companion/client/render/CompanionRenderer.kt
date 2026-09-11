@@ -63,7 +63,7 @@ class CompanionRenderer(context: EntityRendererProvider.Context) :
 
 		val displayContext = BlockDisplayContext.create()
 		// Unknown or invalid names (including the special "clear") resolve to clear glass.
-		val colorIdx = CompanionEntity.DYE_COLOR_NAMES.indexOf(entity.glassColorName)
+		val colorIdx = CompanionEntity.glassColorIndex(entity.glassColorName)
 		val glassBlock = if (colorIdx in glassByDye.indices) glassByDye[colorIdx] else Blocks.GLASS.defaultBlockState()
 		modelResolver.update(state.glassBlock, glassBlock, displayContext)
 		val lamp = if (entity.isAttacking) lampStateAttacking else lampState

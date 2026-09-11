@@ -1,12 +1,15 @@
 package mod.ex3.companion.companion
 
 import mod.ex3.companion.config.CompanionConfig
+import net.minecraft.resources.Identifier
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.Mob
 import net.minecraft.world.entity.monster.Monster
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.phys.Vec3
+import kotlin.math.sqrt
 
 /**
  * Handles combat: target finding, beam firing, target tracking, and disengage logic.
@@ -118,12 +121,12 @@ class CompanionCombat(private val e: CompanionEntity) {
 			)
 		}
 
-		// Hover above the target while shooting
+		// Hover at a standoff distance from the target while shooting (ranged attacker).
 		val hoverY = minOf(
 			target!!.y + target.bbHeight + 0.8,
 			owner.eyePosition.y + ATTACK_HOVER_MAX_ABOVE_OWNER,
 		)
-		val attackTarget = Vec3(target.x, hoverY, target.z)
+		val attackTarget = standoffPosition(target, hoverY, cfg.preferredRange)
 
 		val finalTarget = if (e.isPositionPassable(attackTarget) && e.canSeePosition(attackTarget)) {
 			attackTarget
@@ -156,6 +159,20 @@ class CompanionCombat(private val e: CompanionEntity) {
 		)
 	}
 
+	/**
+	 * Computes a hover position [range] blocks horizontally from the target, on the
+	 * far side from the companion. If the companion is closer than [range], this
+	 * pushes it back out to the standoff distance — ranged-attacker behavior.
+	 */
+	private fun standoffPosition(target: LivingEntity, hoverY: Double, range: Double): Vec3 {
+		val dx = e.x - target.x
+		val dz = e.z - target.z
+		val horizontalDist = sqrt(dx * dx + dz * dz)
+		val dirX = if (horizontalDist > 0.001) dx / horizontalDist else 1.0
+		val dirZ = if (horizontalDist > 0.001) dz / horizontalDist else 0.0
+		return Vec3(target.x + dirX * range, hoverY, target.z + dirZ * range)
+	}
+
 	private fun fireBeam(target: LivingEntity) {
 		val level = (e.level() as? ServerLevel) ?: return
 
@@ -169,6 +186,9 @@ class CompanionCombat(private val e: CompanionEntity) {
 		}
 		level.sendParticles(net.minecraft.core.particles.ParticleTypes.GLOW, to.x, to.y, to.z, 4, 0.15, 0.15, 0.15, 0.02)
 		e.sounds.playBeep(pitch = 1.5f)
+
+		// The target may have died between the line-of-sight check and this call.
+		if (!target.isAlive) return
 
 		val lvl = e.readLevel()
 		val damage = CompanionData.damage(lvl)
@@ -257,13 +277,10 @@ class CompanionCombat(private val e: CompanionEntity) {
 		entity.distanceToSqr(owner) < distance * distance
 
 	private fun isCreeperType(entity: LivingEntity): Boolean =
-		entity.type.descriptionId.contains("creeper")
+		EntityType.getKey(entity.type) == CREEPER_ID
 
-	private fun isRangedMob(entity: LivingEntity): Boolean {
-		val id = entity.type.descriptionId
-		return id.contains("skeleton") || id.contains("blaze") || id.contains("ghast") ||
-			id.contains("pillager") || id.contains("evoker")
-	}
+	private fun isRangedMob(entity: LivingEntity): Boolean =
+		EntityType.getKey(entity.type) in RANGED_MOB_IDS
 
 	private fun isAttackingOwner(entity: LivingEntity, owner: Player): Boolean =
 		(entity is Mob) && (entity.target == owner || entity == owner.lastHurtByMob)
@@ -315,6 +332,9 @@ class CompanionCombat(private val e: CompanionEntity) {
 	private fun targetPriority(entity: LivingEntity, owner: Player): Int =
 		when {
 			isAttackingOwner(entity, owner) -> 2
+			// A mob attacking the companion at melee range is an immediate threat —
+			// treat it as high priority so the companion re-targets and backs off.
+			isTargetingCompanion(entity) && entity.distanceToSqr(e) < MELEE_THREAT_DIST_SQ -> 2
 			isTargetingCompanion(entity) -> 1
 			else -> 0
 		}
@@ -325,9 +345,9 @@ class CompanionCombat(private val e: CompanionEntity) {
 
 	companion object {
 		private const val ATTACK_HOVER_MAX_ABOVE_OWNER = 1.0
-		private const val BEAM_PARTICLES_PER_BLOCK = 4.0
+		private const val BEAM_PARTICLES_PER_BLOCK = 2.0
 		private const val BEAM_MIN_STEPS = 6
-		private const val BEAM_MAX_STEPS = 40
+		private const val BEAM_MAX_STEPS = 24
 		private const val CATCH_UP_DISTANCE_SQ = 9.0
 		/** Ticks between periodic re-target evaluations. */
 		private const val RETARGET_INTERVAL = 40
@@ -335,6 +355,20 @@ class CompanionCombat(private val e: CompanionEntity) {
 		private const val STRATEGIC_ATTACKING_BONUS = 50.0
 		private const val STRATEGIC_CREEPER_PENALTY = 80.0
 		private const val STRATEGIC_RANGED_BONUS = 30.0
+		/** Squared distance at which a mob attacking the companion counts as an immediate melee threat. */
+		private const val MELEE_THREAT_DIST_SQ = 3.0 * 3.0
+
+		/** Registry key of the creeper — used to avoid prioritizing it in strategic mode. */
+		private val CREEPER_ID: Identifier = Identifier.fromNamespaceAndPath("minecraft", "creeper")
+
+		/** Registry keys of mobs treated as ranged threats in strategic mode (approached faster). */
+		private val RANGED_MOB_IDS = setOf(
+			Identifier.fromNamespaceAndPath("minecraft", "skeleton"),
+			Identifier.fromNamespaceAndPath("minecraft", "blaze"),
+			Identifier.fromNamespaceAndPath("minecraft", "ghast"),
+			Identifier.fromNamespaceAndPath("minecraft", "pillager"),
+			Identifier.fromNamespaceAndPath("minecraft", "evoker"),
+		)
 	}
 }
 
