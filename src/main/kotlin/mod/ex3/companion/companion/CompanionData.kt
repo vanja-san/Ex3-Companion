@@ -34,19 +34,25 @@ data class CompanionData(
 		flag: TooltipFlag,
 		components: DataComponentGetter,
 	) {
-		tooltip.accept(Component.translatable("ex3companion.tooltip.health", health.toInt(), maxHealth(level).toInt()).withStyle(ChatFormatting.AQUA))
+		tooltip.accept(Component.translatable("ex3companion.tooltip.health", health.toInt()).withStyle(ChatFormatting.GREEN))
 		val xpRemaining = (xpToNextLevel(level) - xp).coerceAtLeast(0)
-		tooltip.accept(Component.translatable("ex3companion.tooltip.level", level, xpRemaining).withStyle(ChatFormatting.YELLOW))
+		// Level in blue, XP in gray — separate components so each keeps its own color.
+		val levelComp = Component.translatable("ex3companion.tooltip.level", level).withStyle(ChatFormatting.BLUE)
+		val xpComp = Component.translatable("ex3companion.tooltip.xp", xpRemaining).withStyle(ChatFormatting.GRAY)
+		tooltip.accept(levelComp.append(xpComp))
 
 		val dmg = damage(level)
 		val intervalTicks = attackIntervalTicks(level)
 		val intervalSec = String.format("%.1f", intervalTicks / 20.0)
-		tooltip.accept(Component.translatable("ex3companion.tooltip.combat", "%.1f".format(dmg), intervalSec).withStyle(ChatFormatting.RED))
+		// Damage in red, attack speed in gray — separate components so each keeps its own color.
+		val dmgComp = Component.translatable("ex3companion.tooltip.combat", "%.1f".format(dmg)).withStyle(ChatFormatting.RED)
+		val speedComp = Component.translatable("ex3companion.tooltip.attack_speed", intervalSec).withStyle(ChatFormatting.GRAY)
+		tooltip.accept(dmgComp.append(speedComp))
 
 		val healCfg = CompanionConfig.get().healing
 		if (level >= healCfg.unlockLevel) {
-			val healPerSec = "%.1f".format((healCfg.basePerTick + (level - healCfg.unlockLevel) * healCfg.perLevelAbove) * 20)
-			tooltip.accept(Component.translatable("ex3companion.tooltip.healing_active", healPerSec).withStyle(ChatFormatting.GREEN))
+			val healPerSec = "%.1f".format((healCfg.basePerTick + (level - healCfg.unlockLevel) * healCfg.perLevelAbove).coerceAtMost(healCfg.maxPerTick) * 20)
+			tooltip.accept(Component.translatable("ex3companion.tooltip.healing_active", healPerSec).withStyle(ChatFormatting.LIGHT_PURPLE))
 		} else {
 			val lvlLeft = healCfg.unlockLevel - level
 			tooltip.accept(Component.translatable("ex3companion.tooltip.healing_locked", healCfg.unlockLevel, lvlLeft).withStyle(ChatFormatting.DARK_GRAY))
@@ -77,8 +83,8 @@ data class CompanionData(
 
 		val DEFAULT: CompanionData get() = CompanionData(null, CompanionConfig.get().health.base, 0, 1, 0L)
 
-		/** XP required to advance from [level] to [level] + 1. */
-		fun xpToNextLevel(level: Int): Int = level * CompanionConfig.get().xp.formulaMultiplier
+		/** XP required to advance from [level] to [level] + 1. Grows quadratically so late levels are harder. */
+		fun xpToNextLevel(level: Int): Int = level * level * CompanionConfig.get().xp.formulaMultiplier
 
 		/** Maximum health a companion of the given level can have. */
 		fun maxHealth(level: Int): Float {

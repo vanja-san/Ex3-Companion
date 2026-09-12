@@ -60,12 +60,14 @@
   "ex3companion.config.xp.formulaMultiplier": "Множитель опыта формулы",
   "ex3companion.config.xp.levelCap": "Лимит уровня",
   "ex3companion.level_up": "✦ Компаньон повысил уровень до %s!",
-  "ex3companion.tooltip.combat": "⚔ %s урн. · %sс",
+  "ex3companion.tooltip.attack_speed": " · %sс",
+  "ex3companion.tooltip.combat": "⚔ %s урн.",
   "ex3companion.tooltip.healing_active": "✚ Лечение владельца: %s ИС/с",
   "ex3companion.tooltip.healing_locked": "✚ Лечение: Ур. %s (+%s)",
-  "ex3companion.tooltip.health": "❤ %s / %s",
-  "ex3companion.tooltip.level": "✦ Ур. %s · %s опыта",
+  "ex3companion.tooltip.health": "❤ %s",
+  "ex3companion.tooltip.level": "✦ Ур. %s",
   "ex3companion.tooltip.recovering": "Состояние: Восстановление",
+  "ex3companion.tooltip.xp": " · %s опыта",
   "item.ex3-companion.companion_core": "Ядро Ex³ компаньона",
   "key.ex3companion.config": "Открыть настройки компаньона"
 }

@@ -60,12 +60,14 @@
   "ex3companion.config.xp.formulaMultiplier": "XP Formula Multiplier",
   "ex3companion.config.xp.levelCap": "Level Cap",
   "ex3companion.level_up": "✦ Companion leveled up to %s!",
-  "ex3companion.tooltip.combat": "⚔ %s dmg · %ss",
+  "ex3companion.tooltip.attack_speed": " · %ss",
+  "ex3companion.tooltip.combat": "⚔ %s dmg",
   "ex3companion.tooltip.healing_active": "✚ Owner healing: %s HP/s",
   "ex3companion.tooltip.healing_locked": "✚ Healing: Lv. %s (+%s)",
-  "ex3companion.tooltip.health": "❤ %s / %s",
-  "ex3companion.tooltip.level": "✦ Lv. %s · %s XP",
+  "ex3companion.tooltip.health": "❤ %s",
+  "ex3companion.tooltip.level": "✦ Lv. %s",
   "ex3companion.tooltip.recovering": "Condition: Recovering",
+  "ex3companion.tooltip.xp": " · %s XP",
   "item.ex3-companion.companion_core": "Ex³ Companion Core",
   "key.ex3companion.config": "Open Companion Config"
 }

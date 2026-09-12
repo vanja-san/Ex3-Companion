@@ -6,13 +6,17 @@ import net.minecraft.sounds.SoundSource
 import kotlin.random.Random
 
 /**
- * Handles ambient sounds, beep feedback, and particle effects.
+ * Handles ambient sounds, beep feedback, and event-driven emotion effects.
+ *
+ * Emotions are DISCRETE events: a burst of particles + a sound, played once when
+ * something actually happens (healing, combat start, finding a POI, level-up).
+ * There are no constant per-state particles — the companion is silent while flying.
  */
 class CompanionSounds(private val e: CompanionEntity) {
 
 	private var ambientSoundTimer: Int = randomAmbientDelay()
 
-	/** Ticks ambient sounds and plays beeps at random intervals. */
+	/** Ticks rare ambient beeps (not particles). */
 	fun tickAmbientSounds() {
 		ambientSoundTimer--
 		if (ambientSoundTimer <= 0) {
@@ -22,64 +26,51 @@ class CompanionSounds(private val e: CompanionEntity) {
 				playBeep(pitch = 0.9f + (Random.nextFloat() * 0.35f))
 			}
 		}
-
-		// State-dependent ambient particles.
-		tickStateParticles()
 	}
 
-	private fun tickStateParticles() {
+	/**
+	 * Plays a discrete emotion: a burst of particles around the companion plus a
+	 * matching sound. Called once per event, never continuously.
+	 */
+	fun playEmotion(emotion: Emotion) {
 		val level = (e.level() as? ServerLevel) ?: return
-		val state = e.currentState()
-
-		when (state) {
-			BrainState.FOLLOW -> {
-				// Occasional small happy sparkle when close to owner.
-				val owner = e.ownerPlayer()
-				if (owner != null && e.distanceTo(owner) < 4.0 && Random.nextFloat() < 0.015f) {
-					level.sendParticles(
-						ParticleTypes.HAPPY_VILLAGER,
-						e.x + (Random.nextDouble() - 0.5) * 0.6,
-						e.y + 0.5 + Random.nextDouble() * 0.3,
-						e.z + (Random.nextDouble() - 0.5) * 0.6,
-						1, 0.0, 0.0, 0.0, 0.0,
-					)
-				}
+		when (emotion) {
+			Emotion.HAPPY -> {
+				level.sendParticles(
+					ParticleTypes.HAPPY_VILLAGER,
+					e.x, e.y + 0.5, e.z,
+					8, 0.4, 0.3, 0.4, 0.02,
+				)
+				playBeep(pitch = 1.4f)
 			}
-			BrainState.EXPLORE -> {
-				// Subtle note particles when actively scanning at a POI.
-				if (Random.nextFloat() < 0.02f) {
-					level.sendParticles(
-						ParticleTypes.NOTE,
-						e.x + (Random.nextDouble() - 0.5) * 0.8,
-						e.y + 0.6,
-						e.z + (Random.nextDouble() - 0.5) * 0.8,
-						1, 0.0, 0.0, 0.0, 0.0,
-					)
-				}
+			Emotion.CURIOUS -> {
+				level.sendParticles(
+					ParticleTypes.NOTE,
+					e.x, e.y + 0.6, e.z,
+					6, 0.4, 0.3, 0.4, 0.0,
+				)
+				playCuriousBeep()
 			}
-			BrainState.ATTACK -> {
-				// Angry smoke particles while in combat.
-				if (Random.nextFloat() < 0.08f) {
-					level.sendParticles(
-						ParticleTypes.SMOKE,
-						e.x + (Random.nextDouble() - 0.5) * 0.5,
-						e.y + 0.3 + Random.nextDouble() * 0.4,
-						e.z + (Random.nextDouble() - 0.5) * 0.5,
-						2, 0.05, 0.05, 0.05, 0.01,
-					)
-				}
+			Emotion.ANGRY -> {
+				level.sendParticles(
+					ParticleTypes.ANGRY_VILLAGER,
+					e.x, e.y + 0.5, e.z,
+					4, 0.3, 0.3, 0.3, 0.0,
+				)
+				level.sendParticles(
+					ParticleTypes.SMOKE,
+					e.x, e.y + 0.3, e.z,
+					6, 0.3, 0.3, 0.3, 0.01,
+				)
+				playBeep(pitch = 0.6f)
 			}
-			BrainState.IDLE -> {
-				// Slow ambient drift particles (soul fire / end rod feel).
-				if (Random.nextFloat() < 0.008f) {
-					level.sendParticles(
-						ParticleTypes.END_ROD,
-						e.x + (Random.nextDouble() - 0.5) * 0.4,
-						e.y + 0.4,
-						e.z + (Random.nextDouble() - 0.5) * 0.4,
-						1, 0.0, 0.02, 0.0, 0.005,
-					)
-				}
+			Emotion.SAD -> {
+				level.sendParticles(
+					ParticleTypes.SMOKE,
+					e.x, e.y + 0.4, e.z,
+					6, 0.3, 0.3, 0.3, 0.01,
+				)
+				playBeep(pitch = 0.5f)
 			}
 		}
 	}
@@ -99,8 +90,9 @@ class CompanionSounds(private val e: CompanionEntity) {
 		level.playSound(null, e, ModSounds.SAD_BLIP, SoundSource.NEUTRAL, 0.6f, 0.55f)
 	}
 
-	/** Level-up feedback: happy beeps. */
+	/** Level-up feedback: happy emotion + celebratory beeps. */
 	fun playLevelUpFx() {
+		playEmotion(Emotion.HAPPY)
 		playBeep(pitch = 1.6f)
 		playBeep(pitch = 2.0f)
 	}
@@ -113,4 +105,16 @@ class CompanionSounds(private val e: CompanionEntity) {
 		private const val AMBIENT_DELAY_MIN = 20 * 6
 		private const val AMBIENT_DELAY_VARIANCE = 20 * 14
 	}
+}
+
+/** Discrete emotional feedback: a burst of particles + a sound, played once per event. */
+enum class Emotion {
+	/** Healing the owner, level-up. */
+	HAPPY,
+	/** Found an interesting place while exploring. */
+	CURIOUS,
+	/** Attack mode activated / combat started. */
+	ANGRY,
+	/** Death or disengage. */
+	SAD,
 }

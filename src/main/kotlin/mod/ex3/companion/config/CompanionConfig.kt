@@ -26,8 +26,8 @@ class CompanionConfig {
 
 	class HealthConfig {
 		@Expose var base: Float = 20f
-		@Expose var perLevel: Float = 2f
-		@Expose var cap: Float = 60f
+		@Expose var perLevel: Float = 1.25f
+		@Expose var cap: Float = 44f
 		@Expose var regenPerTick: Float = 0.025f
 		@Expose var regenLevelScale: Float = 0.05f
 		@Expose var reviveDelayTicks: Long = 0L
@@ -38,9 +38,9 @@ class CompanionConfig {
 		@Expose var damageBase: Float = 3.0f
 		@Expose var damagePerLevel: Float = 1.0f
 		@Expose var damageCap: Float = 20.0f
-		@Expose var intervalBase: Int = 40
-		@Expose var intervalPerLevel: Int = 2
-		@Expose var intervalMin: Int = 6
+		@Expose var intervalBase: Int = 35
+		@Expose var intervalPerLevel: Int = 1
+		@Expose var intervalMin: Int = 16
 		@Expose var searchRadius: Double = 16.0
 		@Expose var fireRange: Double = 10.0
 		/** Preferred horizontal standoff distance from the target while firing (ranged attacker). */
@@ -61,6 +61,8 @@ class CompanionConfig {
 		@Expose var unlockLevel: Int = 10
 		@Expose var basePerTick: Float = 0.02f
 		@Expose var perLevelAbove: Float = 0.003f
+		/** Hard cap on owner heal rate (HP/tick) so high levels don't feel immortal. */
+		@Expose var maxPerTick: Float = 0.05f
 		@Expose var range: Double = 4.0
 	}
 
@@ -102,8 +104,8 @@ class CompanionConfig {
 	}
 
 	class XpConfig {
-		@Expose var levelCap: Int = 50
-		@Expose var formulaMultiplier: Int = 15
+		@Expose var levelCap: Int = 20
+		@Expose var formulaMultiplier: Int = 3
 	}
 
 	companion object {

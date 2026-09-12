@@ -3,10 +3,11 @@ package mod.ex3.companion.companion
 import mod.ex3.companion.config.CompanionConfig
 import net.minecraft.resources.Identifier
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.Mob
-import net.minecraft.world.entity.monster.Monster
+import net.minecraft.world.entity.monster.Enemy
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.phys.Vec3
 import kotlin.math.sqrt
@@ -33,12 +34,16 @@ class CompanionCombat(private val e: CompanionEntity) {
 	fun tryStartCombat(owner: Player): Boolean {
 		val target = findTarget(owner) ?: return false
 		combatTarget = target
-		attackCooldown = 0
+		// Keep the existing attackCooldown instead of resetting it to 0. Slimes split
+		// into smaller slimes on death, and each new slime is a fresh target — resetting
+		// the cooldown here made the companion fire instantly at every new slime, so the
+		// smaller (faster-dying) the slime, the faster the attack rate appeared.
 		noTargetTicks = 0
 		staleTargetTicks = 0
 		lastTargetHealth = target.health
 		retargetTimer = RETARGET_INTERVAL
 		e.setState(BrainState.ATTACK)
+		e.sounds.playEmotion(Emotion.ANGRY)
 		return true
 	}
 
@@ -106,7 +111,7 @@ class CompanionCombat(private val e: CompanionEntity) {
 				combatTarget = better
 				staleTargetTicks = 0
 				lastTargetHealth = better.health
-				attackCooldown = 0
+				// Don't reset attackCooldown — keep firing on the normal rhythm.ackCooldown — keep firing on the normal rhythm.
 			}
 		}
 
@@ -227,32 +232,32 @@ class CompanionCombat(private val e: CompanionEntity) {
 		}
 	}
 
+	/**
+	 * Returns hostile mobs near [center] within [radius]. Uses the `Enemy` marker
+	 * interface so slimes, magma cubes, phantoms, etc. are included — not just
+	 * `Monster` subclasses (slimes extend `Mob` and implement `Enemy`).
+	 */
+	private fun hostileMobs(center: Entity, radius: Double, predicate: (Mob) -> Boolean): List<Mob> =
+		e.level().getEntitiesOfClass(
+			Mob::class.java,
+			center.boundingBox.inflate(radius),
+		) { it.isAlive && it is Enemy && predicate(it) }
+
 	/** Defender mode: only fight mobs actively attacking the owner or companion. */
 	private fun findDefenderTarget(owner: Player, radius: Double): LivingEntity? =
-		e.level().getEntitiesOfClass(
-			Monster::class.java,
-			owner.boundingBox.inflate(radius),
-		) {
-			it.isAlive && (isAttackingOwner(it, owner) || isTargetingCompanion(it)) &&
-				e.canSeePosition(it.eyePosition)
+		hostileMobs(owner, radius) {
+			(isAttackingOwner(it, owner) || isTargetingCompanion(it)) && e.canSeePosition(it.eyePosition)
 		}.minByOrNull { it.distanceToSqr(owner) }
 
 	/** Aggressive mode: seek any nearby hostile, even if not targeting owner. */
 	private fun findAggressiveTarget(owner: Player, radius: Double): LivingEntity? =
-		e.level().getEntitiesOfClass(
-			Monster::class.java,
-			owner.boundingBox.inflate(radius),
-		) {
-			it.isAlive && e.canSeePosition(it.eyePosition)
-		}.minByOrNull { it.distanceToSqr(e.position()) }
+		hostileMobs(owner, radius) { e.canSeePosition(it.eyePosition) }
+			.minByOrNull { it.distanceToSqr(e.position()) }
 
 	/** Strategic mode: prioritize threats by type — avoid creepers, approach ranged mobs. */
 	private fun findStrategicTarget(owner: Player, radius: Double): LivingEntity? {
-		val candidates = e.level().getEntitiesOfClass(
-			Monster::class.java,
-			owner.boundingBox.inflate(radius),
-		) {
-			it.isAlive && (isAttackingOwner(it, owner) || isTargetingCompanion(it) || isNearOwner(it, owner, 8.0)) &&
+		val candidates = hostileMobs(owner, radius) {
+			(isAttackingOwner(it, owner) || isTargetingCompanion(it) || isNearOwner(it, owner, 8.0)) &&
 				e.canSeePosition(it.eyePosition)
 		}
 		if (candidates.isEmpty()) return null
@@ -297,10 +302,7 @@ class CompanionCombat(private val e: CompanionEntity) {
 	private fun findBetterTarget(owner: Player, current: LivingEntity?): LivingEntity? {
 		val cfg = CompanionConfig.get().combat
 		val radius = cfg.searchRadius
-		val candidates = e.level().getEntitiesOfClass(
-			Monster::class.java,
-			owner.boundingBox.inflate(radius),
-		) { it.isAlive && e.canSeePosition(it.eyePosition) }
+		val candidates = hostileMobs(owner, radius) { e.canSeePosition(it.eyePosition) }
 		if (candidates.isEmpty()) return null
 
 		val currentPriority = if (current != null) targetPriority(current, owner) else -1

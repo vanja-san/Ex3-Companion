@@ -191,7 +191,7 @@ class CompanionBrain(private val e: CompanionEntity, private val combat: Compani
 		scanTimer = 0
 		e.setState(BrainState.EXPLORE)
 		moodPulse = 1f
-		e.sounds.playCuriousBeep()
+		e.sounds.playEmotion(Emotion.CURIOUS)
 	}
 
 	private fun findInterestingTarget(owner: Player): Vec3? {

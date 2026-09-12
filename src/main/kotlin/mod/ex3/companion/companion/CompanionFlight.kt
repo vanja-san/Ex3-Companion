@@ -4,7 +4,8 @@ import mod.ex3.companion.config.CompanionConfig
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.entity.Entity
-import net.minecraft.world.entity.monster.Monster
+import net.minecraft.world.entity.Mob
+import net.minecraft.world.entity.monster.Enemy
 import net.minecraft.world.entity.projectile.Projectile
 import net.minecraft.world.level.ClipContext
 import net.minecraft.world.level.block.Blocks
@@ -542,10 +543,11 @@ class CompanionFlight(private val e: CompanionEntity) {
 		val pos = e.position()
 		var avoidance = Vec3.ZERO
 
+		// `Enemy` covers Monster, Slime, MagmaCube, Phantom, etc. — not just Monster.
 		val nearby = level.getEntitiesOfClass(
-			Monster::class.java,
+			Mob::class.java,
 			e.boundingBox.inflate(MOB_AVOID_RADIUS),
-		) { it.isAlive && it.distanceToSqr(e) < MOB_AVOID_RADIUS_SQ }
+		) { it.isAlive && it is Enemy && it.distanceToSqr(e) < MOB_AVOID_RADIUS_SQ }
 
 		for (mob in nearby) {
 			val toCompanion = pos.subtract(mob.position())
