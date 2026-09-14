@@ -44,4 +44,5 @@ replay_*.log
 .temp/
 .copilot/
 AGENTS.md
-/net/
+net/
+.kotlin/

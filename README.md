@@ -133,13 +133,13 @@ All settings are also editable via **Mod Menu** → Ex³ Companion → Config Sc
 | Dependency | Version | Type |
 |------------|---------|------|
 | Minecraft | 26.2 | Required |
-| Fabric Loader | ≥ 0.19.3 | Required |
-| Fabric API | 0.158.0+26.2 | Required |
-| Fabric Language Kotlin | 1.13.13+kotlin.2.4.10 | Required |
+| Fabric Loader | ≥ 0.19.5 | Required |
+| Fabric API | 0.160.0+26.2 | Required |
+| Fabric Language Kotlin | 1.14.1+kotlin.2.4.20 | Required |
 | YACL (YetAnotherConfigLib) | 3.9.6+26.2-fabric | Required |
 | Java | ≥ 25 | Required |
-| LambDynamicLights | 4.12.3+26.2 | Optional |
-| Mod Menu | 20.0.1+26.2 | Optional |
+| LambDynamicLights | 4.12.4+26.2 | Optional |
+| Mod Menu | 20.0.2+26.2 | Optional |
 
 ## Installation
 

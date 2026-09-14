@@ -6,24 +6,20 @@ plugins {
 	// Generates .project/.classpath for IDEs (Eclipse/JDT): ensures the Kotlin
 	// compiled output is visible to the Java language server in VS Code.
     eclipse
-	id("org.jetbrains.kotlin.jvm") version "2.4.10"
+	id("org.jetbrains.kotlin.jvm") version "2.4.20"
 }
 
 repositories {
-	// Add repositories to retrieve artifacts from in here.
-	// You should only use this when depending on other mods because
-	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
-	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
-	// for more information about repositories.
-	maven("https://maven.blamejared.com/") // JEI
-	maven("https://api.modrinth.com/maven") { // Jade
+	// Modrinth first: reachable and hosts all maven.modrinth artifacts.
+	maven("https://api.modrinth.com/maven") { // Jade, Sodium, Iris, Mod Menu, etc.
 		content {
 			includeGroup("maven.modrinth")
 		}
 	}
-	maven("https://cursemaven.com") { // CurseForge mods (dev-only)
+	// JEI is fetched via its Modrinth maven id (maven.blamejared.com is flaky/blocked).
+	maven("https://maven.blamejared.com/") {
 		content {
-			includeGroup("curse.maven")
+			includeGroup("mezz.jei")
 		}
 	}
 	maven("https://maven.isxander.dev/releases") { // YACL
@@ -61,7 +57,7 @@ dependencies {
 	implementation("dev.isxander:yet-another-config-lib:${providers.gradleProperty("yacl_version").get()}")
 
 	// Dev-only test mods: present in runClient, never compiled against, never bundled into the jar.
-	localRuntime("mezz.jei:jei-26.2-fabric:${providers.gradleProperty("jei_version").get()}")
+	localRuntime("maven.modrinth:jei:${providers.gradleProperty("jei_version").get()}")
 	localRuntime("maven.modrinth:jade:${providers.gradleProperty("jade_version").get()}")
 	// Resource-pack manager, dev convenience only (client-side).
 	localRuntime("maven.modrinth:resourcify:${providers.gradleProperty("resourcify_version").get()}")
@@ -69,14 +65,6 @@ dependencies {
 	localRuntime("maven.modrinth:sodium:${providers.gradleProperty("sodium_version").get()}")
 	localRuntime("maven.modrinth:iris:${providers.gradleProperty("iris_version").get()}")
 
-	// Configured (curse.maven): data-driven config UI, dev-only.
-	localRuntime("curse.maven:configured-457570:${providers.gradleProperty("configured_version").get()}")
-	// Framework (curse.maven): required by Configured, dev-only.
-	localRuntime("curse.maven:framework-549225:${providers.gradleProperty("framework_version").get()}")
-	// Catalogue (curse.maven): config screen provider, dev-only.
-	localRuntime("curse.maven:catalogue-459701:${providers.gradleProperty("catalogue_version").get()}")
-	// MenuLogue (curse.maven): Mod Menu ↔ Catalogue bridge, dev-only.
-	localRuntime("curse.maven:menulogue-682371:${providers.gradleProperty("menulogue_version").get()}")
 	// Mod Menu: mod list screen + config screens, dev-only.
 	compileOnly("maven.modrinth:modmenu:${providers.gradleProperty("modmenu_version").get()}")
 	localRuntime("maven.modrinth:modmenu:${providers.gradleProperty("modmenu_version").get()}")
