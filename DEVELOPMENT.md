@@ -2,51 +2,67 @@
 
 ## Building
 
-Requirements: JDK 25+, Internet connection (for Gradle dependencies).
+Requirements: JDK 25+, Internet connection (Gradle dependencies). On Windows use `gradlew.bat` instead of `./gradlew`.
 
 ```bash
-# Build the mod jar
+# Build the mod jar (output: build/libs/Ex3Companion-v1.3.1-mc26.2-Fabric.jar)
 ./gradlew build
 
-# Run the mod in a dev client
+# Run a dev client
 ./gradlew runClient
 
 # Run a dev server
 ./gradlew runServer
 
-# Generate language files
-./gradlew runDatagenClient
+# Regenerate language files (datagen)
+./gradlew runDatagen
 ```
 
-The built jar is in `build/libs/`.
+If a task reports `UP-TO-DATE` but the output looks wrong (e.g. a stale resource in `build/resources`),
+force it with `./gradlew clean build` or add `--rerun-tasks`.
+
+### Known dev caveats
+
+- `runServer` in dev fails with *"resource 'ex3.client.mixins.json' was invalid or could not be read"*.
+  This is a Loom `splitEnvironmentSourceSets` quirk: the client-only mixin config is declared in
+  `fabric.mod.json` but its resources are not on the dev server classpath. Production jars include
+  both mixin configs, so dedicated servers are unaffected. Use `runClient` or a production jar for testing.
+- Stale/incremental Gradle output is a common cause of "resource not found" — verify
+  `build/resources/**` before blaming the code.
 
 ## Project Structure
 
 ```
 src/
-├── main/                    # Common (server + client)
-│   ├── kotlin/              # Kotlin source
-│   │   ├── companion/       # Core logic (entity, brain, combat, flight, etc.)
-│   │   ├── config/          # JSON config (YACL-compatible)
-│   │   ├── registry/        # Items, entities, components
-│   │   └── mixin/           # Server-side mixins
-│   ├── java/                # Java source (network payloads)
-│   └── resources/           # Assets, recipes, mixin configs
-├── client/                  # Client-only
-│   ├── kotlin/              # Renderer, config screen, dynamic lights
-│   ├── java/                # Client mixins (Java, for static shadows)
-│   └── resources/           # Client mixin config
-└── generated/               # Datagen output (lang files)
+├── main/                        # Common (server + client)
+│   ├── kotlin/mod/ex3/companion/
+│   │   ├── companion/           # Core logic (entity, brain, combat, flight, health, core slot manager)
+│   │   ├── command/             # Dev commands
+│   │   ├── config/              # JSON config (YACL-compatible)
+│   │   ├── item/                # Companion Core item
+│   │   ├── mixin/               # Server/common mixins (common, Kotlin)
+│   │   ├── network/             # Client↔server payloads
+│   │   ├── recipe/              # Custom recipes (glass dye, crafting)
+│   │   └── registry/            # Items, entities, data components
+│   ├── generated/               # Datagen output (lang files)
+│   └── resources/               # Assets, recipes, mixin config, fabric.mod.json
+└── client/                      # Client-only
+    ├── kotlin/mod/ex3/companion/client/
+    │   ├── config/              # YACL config screen
+    │   └── render/              # Companion renderer, dynamic lights
+    ├── java/mod/ex3/companion/mixin/   # Client mixins (Java, for static shadows)
+    └── resources/               # Client mixin config
 ```
 
 ## Tech Stack
 
 - **Kotlin** — main language (entrypoints, entity logic, mixins)
-- **Java** — network payloads (low-level NBT)
+- **Java** — client mixins (static shadows for container screens)
 - **Fabric Loom 1.17** — build toolchain with split source sets
-- **SpongePowered Mixin** — class transformations
+- **SpongePowered Mixin** — class transformations (`ex3.mixins.json`, `ex3.client.mixins.json`)
 - **YACL** — config screen library
-- **LambDynamicLights API** — dynamic entity lighting
+- **LambDynamicLights API** — dynamic entity lighting (compiled against stubs in `libs/`, not bundled)
+- **Mojang mappings** — official names, no Yarn
 
 ## Dependencies
 
@@ -60,3 +76,7 @@ src/
 | Java | ≥ 25 | Required |
 | LambDynamicLights | 4.12.4+26.2 | Optional (for dynamic lighting) |
 | Mod Menu | 20.0.2+26.2 | Optional (for config screen) |
+| JEI / Jade / Sodium / Iris / Resourcify | latest | Dev-only (`localRuntime`, never bundled) |
+
+Versions live in `gradle.properties`. Required-mod versions are the minimum the mod is built
+against; `fabric.mod.json` keeps broad `*` / range constraints so newer builds satisfy them.
