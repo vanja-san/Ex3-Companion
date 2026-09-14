@@ -5,6 +5,7 @@ import mod.ex3.companion.recipe.ClearGlassRecipe
 import mod.ex3.companion.registry.ModComponents
 import mod.ex3.companion.registry.ModEntities
 import mod.ex3.companion.registry.ModItems
+import net.minecraft.core.component.DataComponents
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
@@ -127,6 +128,8 @@ object CoreSlotManager {
 			existing.syncMaxHealth(data.level)
 			existing.health = data.health
 			existing.glassColorName = data.glassColor
+			// Keep the entity name in sync with the (possibly renamed) core item.
+			existing.setCustomName(stack.get(DataComponents.CUSTOM_NAME))
 			// Keep the entity id fresh on the core item (also persists colour sources).
 			writeData(player, stack, data.withId(existing.uuid))
 			return
@@ -141,6 +144,8 @@ object CoreSlotManager {
 		entity.syncMaxHealth(data.level)
 		entity.health = data.health
 		entity.glassColorName = data.glassColor
+		// The anvil-renamed (vanilla CUSTOM_NAME) core names the companion entity.
+		entity.setCustomName(stack.get(DataComponents.CUSTOM_NAME))
 		// Load exploration memory from the core item.
 		entity.memory.exploredChunks.addAll(data.memory.exploredChunks)
 		entity.memory.oreYPreferences.putAll(data.memory.oreYPreferences)
