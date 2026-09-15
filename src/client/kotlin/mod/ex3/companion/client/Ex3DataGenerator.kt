@@ -50,8 +50,12 @@ private class Ex3EnglishLangProvider(
 		translationBuilder.add("key.ex3companion.config", "Open Companion Config")
 		translationBuilder.add("category.ex3companion", "Ex³ Companion")
 		translationBuilder.add("ex3companion.config.title", "Ex³ Companion Settings")
-		translationBuilder.add("ex3companion.config.tab.server", "Gameplay")
-		translationBuilder.add("ex3companion.config.tab.client", "Movement")
+		translationBuilder.add("ex3companion.config.tab.server", "Server")
+		translationBuilder.add("ex3companion.config.tab.server.oponly", "Operator-only — requires operator permissions on this server")
+		translationBuilder.add("ex3companion.config.tab.client", "Client")
+		// Client-side config
+		translationBuilder.add("ex3companion.config.group.rendering", "Rendering")
+		translationBuilder.add("ex3companion.config.client.dynamicLight", "Companion Dynamic Light")
 		// Config groups
 		translationBuilder.add("ex3companion.config.group.health", "Health")
 		translationBuilder.add("ex3companion.config.group.combat", "Combat")
@@ -88,7 +92,6 @@ private class Ex3EnglishLangProvider(
 		translationBuilder.add("ex3companion.config.healing.perLevelAbove", "Heal Per Level Above")
 		translationBuilder.add("ex3companion.config.healing.range", "Heal Range")
 		// Explore
-		translationBuilder.add("ex3companion.config.tab.explore", "Explore")
 		translationBuilder.add("ex3companion.config.group.explore", "Exploration")
 		translationBuilder.add("ex3companion.config.explore.cooldownMin", "Exploration Cooldown")
 		translationBuilder.add("ex3companion.config.explore.cooldownVariance", "Cooldown Variance")
@@ -144,8 +147,12 @@ private class Ex3RussianLangProvider(
 		translationBuilder.add("key.ex3companion.config", "Открыть настройки компаньона")
 		translationBuilder.add("category.ex3companion", "Ex³ Companion")
 		translationBuilder.add("ex3companion.config.title", "Настройки Ex³ компаньона")
-		translationBuilder.add("ex3companion.config.tab.server", "Геймплей")
-		translationBuilder.add("ex3companion.config.tab.client", "Движение")
+		translationBuilder.add("ex3companion.config.tab.server", "Сервер")
+		translationBuilder.add("ex3companion.config.tab.server.oponly", "Только для операторов — требуются права оператора на этом сервере")
+		translationBuilder.add("ex3companion.config.tab.client", "Клиент")
+		// Client-side config
+		translationBuilder.add("ex3companion.config.group.rendering", "Отображение")
+		translationBuilder.add("ex3companion.config.client.dynamicLight", "Подсветка компаньона")
 		// Config groups
 		translationBuilder.add("ex3companion.config.group.health", "Здоровье")
 		translationBuilder.add("ex3companion.config.group.combat", "Бой")
@@ -182,7 +189,6 @@ private class Ex3RussianLangProvider(
 		translationBuilder.add("ex3companion.config.healing.perLevelAbove", "Лечение за уровень выше")
 		translationBuilder.add("ex3companion.config.healing.range", "Дальность лечения")
 		// Explore
-		translationBuilder.add("ex3companion.config.tab.explore", "Исследование")
 		translationBuilder.add("ex3companion.config.group.explore", "Исследование")
 		translationBuilder.add("ex3companion.config.explore.cooldownMin", "Кулдаун исследования")
 		translationBuilder.add("ex3companion.config.explore.cooldownVariance", "Вариативность кулдауна")

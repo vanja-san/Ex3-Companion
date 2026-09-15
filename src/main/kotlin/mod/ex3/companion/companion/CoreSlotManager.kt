@@ -215,6 +215,32 @@ object CoreSlotManager {
 		return companion
 	}
 
+	/**
+	 * Re-applies the gameplay config to every summoned companion after the server
+	 * config changes (e.g. operator config edit via the GUI). Without this, a live
+	 * health-config change leaves existing entities on their old MAX_HEALTH attribute:
+	 * the client bar shows the new (larger) max while health stays at the old value,
+	 * and regeneration never fires because health already equals the stale max.
+	 *
+	 * Always refreshes the MAX_HEALTH attribute; when [topUpToFull] it also tops the
+	 * companion up to the new full health and pushes that to the core item.
+	 */
+	fun retuneAllCompanions(server: MinecraftServer, topUpToFull: Boolean) {
+		for (player in server.playerList.players) {
+			if (player.level().isClientSide) continue
+			val companion = findCompanion(player) ?: continue
+			val container = getOrCreateContainer(player)
+			val stack = container.getItem(0)
+			if (!stack.`is`(ModItems.COMPANION_CORE)) continue
+			val level = readData(stack).level
+			companion.syncMaxHealth(level)
+			if (topUpToFull) {
+				companion.health = companion.maxHealth
+				syncHealthToCore(player, companion.maxHealth)
+			}
+		}
+	}
+
 	// ------------------------------------------------------------------
 	// Player lifecycle events
 	// ------------------------------------------------------------------

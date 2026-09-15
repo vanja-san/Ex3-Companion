@@ -3,7 +3,10 @@ package mod.ex3.companion
 import mod.ex3.companion.command.CompanionCommand
 import mod.ex3.companion.companion.CoreSlotManager
 import mod.ex3.companion.config.CompanionConfig
+import mod.ex3.companion.config.CompanionPermissions
 import mod.ex3.companion.network.CompanionSlotPayload
+import mod.ex3.companion.network.ConfigSyncPayload
+import mod.ex3.companion.network.ConfigUpdatePayload
 import mod.ex3.companion.registry.ModComponents
 import mod.ex3.companion.registry.ModEntities
 import mod.ex3.companion.registry.ModItems
@@ -44,6 +47,8 @@ object Ex3Companion : ModInitializer {
 
 	private fun registerNetworking() {
 		PayloadTypeRegistry.serverboundPlay().register(CompanionSlotPayload.TYPE, CompanionSlotPayload.CODEC)
+		PayloadTypeRegistry.clientboundPlay().register(ConfigSyncPayload.TYPE, ConfigSyncPayload.CODEC)
+		PayloadTypeRegistry.serverboundPlay().register(ConfigUpdatePayload.TYPE, ConfigUpdatePayload.CODEC)
 
 		ServerPlayNetworking.registerGlobalReceiver(CompanionSlotPayload.TYPE) { payload, context ->
 			val player = context.player()
@@ -59,12 +64,35 @@ object Ex3Companion : ModInitializer {
 				}
 			}
 		}
+
+		// Operator-only gameplay config updates. The request payload is applied,
+		// written to disk, then the new values are rebroadcast to all players.
+		ServerPlayNetworking.registerGlobalReceiver(ConfigUpdatePayload.TYPE) { payload, context ->
+			if (!CompanionPermissions.isOperator(context.player())) return@registerGlobalReceiver
+			val parsed = CompanionConfig.parse(payload.json) ?: return@registerGlobalReceiver
+			context.server().execute {
+				val oldHealth = CompanionConfig.get().health
+				CompanionConfig.applyParsed(parsed)
+				CompanionConfig.save()
+				// Live-tune every summoned companion so existing entities pick up the new
+				// max health; when the health tuning itself changed, top them up to full so
+				// the bar doesn't show "missing" HP and regen resumes toward the new value.
+				val healthTuningChanged = oldHealth.base != parsed.health.base ||
+					oldHealth.perLevel != parsed.health.perLevel ||
+					oldHealth.cap != parsed.health.cap
+				CoreSlotManager.retuneAllCompanions(context.server(), topUpToFull = healthTuningChanged)
+				val serialized = CompanionConfig.serialize(parsed)
+				context.server().playerList.players.forEach { ServerPlayNetworking.send(it, ConfigSyncPayload(serialized)) }
+			}
+		}
 	}
 
 	private fun registerEvents() {
-		// Login: restore slot content and summon if needed.
+		// Login: restore slot content, summon if needed, and sync the gameplay
+		// config so the client GUI shows server-authoritative values.
 		ServerPlayConnectionEvents.JOIN.register { handler, _, _ ->
 			CoreSlotManager.onPlayerJoin(handler.player)
+			ServerPlayNetworking.send(handler.player, ConfigSyncPayload(CompanionConfig.serialize(CompanionConfig.get())))
 		}
 
 		// Logout: quietly hide the companion; the core stays in the slot.

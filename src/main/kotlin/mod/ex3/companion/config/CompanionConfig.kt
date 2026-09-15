@@ -153,5 +153,44 @@ class CompanionConfig {
 				return CompanionConfig().also { instance = it }
 			}
 		}
+
+		/** Serializes a config to its JSON representation (network payload + file format). */
+		fun serialize(cfg: CompanionConfig): String = GSON.toJson(cfg)
+
+		/**
+		 * Parses a JSON representation of the config. Returns null on malformed input.
+		 * Defensive: any section explicitly null in the JSON (e.g. `"health": null`)
+		 * is replaced with its default values so downstream code never sees a null section.
+		 */
+		fun parse(json: String): CompanionConfig? =
+			try {
+				val parsed = GSON.fromJson(json, CompanionConfig::class.java) ?: return null
+				// Gson can set a section to null on malformed input, which would NPE
+				// downstream. The fields are non-null in Kotlin, so read them through a
+				// map to keep the guards real at runtime.
+				val sections = mapOf(
+					"health" to parsed.health,
+					"combat" to parsed.combat,
+					"healing" to parsed.healing,
+					"movement" to parsed.movement,
+					"explore" to parsed.explore,
+					"xp" to parsed.xp,
+				)
+				if (sections["health"] == null) parsed.health = HealthConfig()
+				if (sections["combat"] == null) parsed.combat = CombatConfig()
+				if (sections["healing"] == null) parsed.healing = HealingConfig()
+				if (sections["movement"] == null) parsed.movement = MovementConfig()
+				if (sections["explore"] == null) parsed.explore = ExploreConfig()
+				if (sections["xp"] == null) parsed.xp = XpConfig()
+				parsed
+			} catch (e: Exception) {
+				LOGGER.warn("Failed to parse companion config payload", e)
+				null
+			}
+
+		/** Replaces the active config instance (used for server-side apply and client-side mirror). */
+		fun applyParsed(parsed: CompanionConfig) {
+			instance = parsed
+		}
 	}
 }

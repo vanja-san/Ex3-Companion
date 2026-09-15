@@ -9,7 +9,7 @@
 
 *A loyal floating companion for Minecraft: Java Edition — craft its core, slot it in, and it follows you on your adventures.*
 
-[![Version](https://img.shields.io/badge/Version-1.3.1-181717)](https://github.com/vanja-san/Ex3Companion)
+[![Version](https://img.shields.io/badge/Version-1.3.4-181717)](https://github.com/vanja-san/Ex3Companion)
 [![Minecraft](https://img.shields.io/badge/Minecraft-26.2-red)](#)
 [![Mod Loader](https://img.shields.io/badge/Mod%20Loader-Fabric-blue)](https://fabricmc.net)
 [![License](https://img.shields.io/badge/License-CC0--1.0-brightgreen)](LICENSE)
@@ -46,7 +46,10 @@
 
 ## Configuration
 
-Settings live in `config/ex3-companion.json` (auto-created on first launch) and are editable in-game via **Mod Menu → Ex³ Companion**.
+Settings are edited in-game via **Mod Menu → Ex³ Companion** and split into two categories:
+
+- **Server** — gameplay tuning, stored in `config/ex3-companion.json` on the server. The server syncs its values to every connected player; operators can edit them live (changes apply and save server-side), non-operators see the page as read-only/inactive.
+- **Client** — local-only options, stored in `config/ex3-companion-client.json` on your machine (e.g. the companion's dynamic light).
 
 | Group | Key settings |
 |-------|--------------|
@@ -56,6 +59,7 @@ Settings live in `config/ex3-companion.json` (auto-created on first launch) and 
 | Movement | follow speed, catch-up speed, teleport distance |
 | Exploration | cooldown, chance, duration, search radius |
 | XP | level cap, formula multiplier |
+| Client · Rendering | dynamic light toggle |
 
 ## Requirements
 
@@ -73,7 +77,7 @@ Settings live in `config/ex3-companion.json` (auto-created on first launch) and 
 ## Installation
 
 1. Install [Fabric Loader](https://fabricmc.net/use/installer/) for Minecraft 26.2.
-2. Copy `Ex3Companion-v1.3.1-mc26.2-Fabric.jar` into `mods/` (on your server **and** every client to see it on multiplayer).
+2. Copy `Ex3Companion-v1.3.4-mc26.2-Fabric.jar` into `mods/` (on your server **and** every client to see it on multiplayer).
 3. Add the required dependencies from the table above to the same `mods/` folder.
 4. Launch the game.
 

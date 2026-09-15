@@ -2,6 +2,7 @@ package mod.ex3.companion.client
 
 import dev.lambdaurora.lambdynlights.api.entity.luminance.EntityLuminance
 import dev.lambdaurora.lambdynlights.api.item.ItemLightSourceManager
+import mod.ex3.companion.client.config.CompanionClientConfig
 import net.minecraft.resources.Identifier
 import net.minecraft.world.entity.Entity
 import kotlin.math.abs
@@ -24,6 +25,9 @@ class CompanionEntityLuminance private constructor() : EntityLuminance {
 	override fun type(): EntityLuminance.Type = COMPANION_LUMINANCE_TYPE
 
 	override fun getLuminance(itemLightSourceManager: ItemLightSourceManager, entity: Entity): Int {
+		// Client config toggle: dynamic light fully off when disabled.
+		if (!CompanionClientConfig.get().dynamicLight) return 0
+
 		val level = entity.level()
 		val blockPos = entity.blockPosition()
 

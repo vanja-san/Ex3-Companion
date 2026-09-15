@@ -5,7 +5,7 @@
 Requirements: JDK 25+, Internet connection (Gradle dependencies). On Windows use `gradlew.bat` instead of `./gradlew`.
 
 ```bash
-# Build the mod jar (output: build/libs/Ex3Companion-v1.3.1-mc26.2-Fabric.jar)
+# Build the mod jar (output: build/libs/Ex3Companion-v${version}-mc26.2-Fabric.jar)
 ./gradlew build
 
 # Run a dev client
@@ -38,21 +38,32 @@ src/
 │   ├── kotlin/mod/ex3/companion/
 │   │   ├── companion/           # Core logic (entity, brain, combat, flight, health, core slot manager)
 │   │   ├── command/             # Dev commands
-│   │   ├── config/              # JSON config (YACL-compatible)
+│   │   ├── config/              # Server gameplay config (JSON, synced to clients; operator check via MC 26.2 permissions)
 │   │   ├── item/                # Companion Core item
 │   │   ├── mixin/               # Server/common mixins (common, Kotlin)
-│   │   ├── network/             # Client↔server payloads
+│   │   ├── network/             # Payloads: slot sync, server config sync (S2C) / config update (C2S, op-gated)
 │   │   ├── recipe/              # Custom recipes (glass dye, crafting)
 │   │   └── registry/            # Items, entities, data components
 │   ├── generated/               # Datagen output (lang files)
 │   └── resources/               # Assets, recipes, mixin config, fabric.mod.json
 └── client/                      # Client-only
     ├── kotlin/mod/ex3/companion/client/
-    │   ├── config/              # YACL config screen
+    │   ├── config/              # YACL config screen + client-only config (ex3-companion-client.json)
     │   └── render/              # Companion renderer, dynamic lights
     ├── java/mod/ex3/companion/mixin/   # Client mixins (Java, for static shadows)
     └── resources/               # Client mixin config
 ```
+
+### Config sync flow
+
+- Server loads `config/ex3-companion.json` at startup and pushes it to every player on join
+  (`ConfigSyncPayload`). Clients adopt it as the mirrored `CompanionConfig`.
+- The Mod Menu screen has a **Server** tab (gameplay) and a **Client** tab (local-only options —
+  stored in `config/ex3-companion-client.json`).
+- Server-tab controls are enabled only when the player is an operator (MC 26.2
+  `Permissions.COMMANDS_GAMEMASTER`, i.e. command-level ≥ 2); non-operators see the page read-only/greyed.
+- Operator edits are sent back via `ConfigUpdatePayload`; the server re-checks operator status,
+  applies the config, saves it to disk, and rebroadcasts to all players.
 
 ## Tech Stack
 
