@@ -36,7 +36,7 @@ object CompanionCommand {
 								val stack = net.minecraft.world.item.ItemStack(ModItems.COMPANION_CORE)
 								stack[ModComponents.COMPANION_DATA] = CompanionData.DEFAULT
 								if (!player.inventory.add(stack)) {
-									player.drop(stack, false)
+									player.drop(stack, false, net.minecraft.util.Prediction.SERVER_ONLY)
 								}
 								context.source.sendSuccess(
 									{ Component.translatable("ex3companion.command.given") },

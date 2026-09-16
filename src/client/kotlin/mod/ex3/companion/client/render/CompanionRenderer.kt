@@ -97,7 +97,7 @@ class CompanionRenderer(context: EntityRendererProvider.Context) :
 		// --- Outer glass cube (full-bright: the whole companion glows) ---
 		poseStack.pushPose()
 		poseStack.translate(0.0f, CUBE_CENTER_Y + state.bobOffset, 0.0f)
-		poseStack.mulPose(Axis.YP.rotationDegrees(state.spinDegrees))
+		poseStack.mulPose(org.joml.Matrix4f().rotate(Axis.YP.rotationDegrees(state.spinDegrees)))
 		poseStack.scale(GLASS_SCALE, GLASS_SCALE, GLASS_SCALE)
 		poseStack.translate(-0.5f, -0.5f, -0.5f)
 		state.glassBlock.submit(poseStack, collector, LAMP_GLOW_LIGHT, OverlayTexture.NO_OVERLAY, state.outlineColor)
@@ -106,7 +106,7 @@ class CompanionRenderer(context: EntityRendererProvider.Context) :
 		// --- Inner emerald core (counter-rotating, pulsing, full-bright) ---
 		poseStack.pushPose()
 		poseStack.translate(0.0f, CUBE_CENTER_Y + state.bobOffset, 0.0f)
-		poseStack.mulPose(Axis.YP.rotationDegrees(-state.spinDegrees * CORE_COUNTER_SPIN))
+		poseStack.mulPose(org.joml.Matrix4f().rotate(Axis.YP.rotationDegrees(-state.spinDegrees * CORE_COUNTER_SPIN)))
 		poseStack.scale(state.coreScale, state.coreScale, state.coreScale)
 		poseStack.translate(-0.5f, -0.5f, -0.5f)
 		state.lampBlock.submit(poseStack, collector, LAMP_GLOW_LIGHT, OverlayTexture.NO_OVERLAY, state.outlineColor)

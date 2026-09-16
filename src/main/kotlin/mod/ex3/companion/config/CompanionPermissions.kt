@@ -4,7 +4,7 @@ import net.minecraft.server.permissions.Permissions
 import net.minecraft.world.entity.player.Player
 
 /**
- * Operator detection based on MC 26.2's layered permission system.
+ * Operator detection based on MC 26.3's layered permission system.
  *
  * A player counts as an "operator" when their permission set grants the
  * command-level permission GAMEMASTERS (level 2) — the same threshold the

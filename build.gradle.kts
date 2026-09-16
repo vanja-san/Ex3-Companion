@@ -57,7 +57,9 @@ dependencies {
 	implementation("dev.isxander:yet-another-config-lib:${providers.gradleProperty("yacl_version").get()}")
 
 	// Dev-only test mods: present in runClient, never compiled against, never bundled into the jar.
-	localRuntime("maven.modrinth:jei:${providers.gradleProperty("jei_version").get()}")
+	// JEI is currently DISABLED (no 26.3 build yet) — the 26.2 jar crashes the datagen/client launch
+	// on 26.3 (NoSuchFieldError: InputConstants.Type.KEYSYM). Re-enable once a 26.3 build exists.
+	// localRuntime("maven.modrinth:jei:${providers.gradleProperty("jei_version").get()}")
 	localRuntime("maven.modrinth:jade:${providers.gradleProperty("jade_version").get()}")
 	// Resource-pack manager, dev convenience only (client-side).
 	localRuntime("maven.modrinth:resourcify:${providers.gradleProperty("resourcify_version").get()}")

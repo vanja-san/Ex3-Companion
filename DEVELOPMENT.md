@@ -5,7 +5,7 @@
 Requirements: JDK 25+, Internet connection (Gradle dependencies). On Windows use `gradlew.bat` instead of `./gradlew`.
 
 ```bash
-# Build the mod jar (output: build/libs/Ex3Companion-v${version}-mc26.2-Fabric.jar)
+# Build the mod jar (output: build/libs/Ex3Companion-v${version}-mc26.3-Fabric.jar)
 ./gradlew build
 
 # Run a dev client
@@ -38,7 +38,7 @@ src/
 │   ├── kotlin/mod/ex3/companion/
 │   │   ├── companion/           # Core logic (entity, brain, combat, flight, health, core slot manager)
 │   │   ├── command/             # Dev commands
-│   │   ├── config/              # Server gameplay config (JSON, synced to clients; operator check via MC 26.2 permissions)
+│   │   ├── config/              # Server gameplay config (JSON, synced to clients; operator check via MC 26.3 permissions)
 │   │   ├── item/                # Companion Core item
 │   │   ├── mixin/               # Server/common mixins (common, Kotlin)
 │   │   ├── network/             # Payloads: slot sync, server config sync (S2C) / config update (C2S, op-gated)
@@ -60,7 +60,7 @@ src/
   (`ConfigSyncPayload`). Clients adopt it as the mirrored `CompanionConfig`.
 - The Mod Menu screen has a **Server** tab (gameplay) and a **Client** tab (local-only options —
   stored in `config/ex3-companion-client.json`).
-- Server-tab controls are enabled only when the player is an operator (MC 26.2
+- Server-tab controls are enabled only when the player is an operator (MC 26.3
   `Permissions.COMMANDS_GAMEMASTER`, i.e. command-level ≥ 2); non-operators see the page read-only/greyed.
 - Operator edits are sent back via `ConfigUpdatePayload`; the server re-checks operator status,
   applies the config, saves it to disk, and rebroadcasts to all players.
@@ -69,7 +69,7 @@ src/
 
 - **Kotlin** — main language (entrypoints, entity logic, mixins)
 - **Java** — client mixins (static shadows for container screens)
-- **Fabric Loom 1.17** — build toolchain with split source sets
+- **Fabric Loom 1.18.1** — build toolchain with split source sets
 - **SpongePowered Mixin** — class transformations (`ex3.mixins.json`, `ex3.client.mixins.json`)
 - **YACL** — config screen library
 - **LambDynamicLights API** — dynamic entity lighting (compiled against stubs in `libs/`, not bundled)
@@ -79,15 +79,15 @@ src/
 
 | Dependency | Version | Type |
 |------------|---------|------|
-| Minecraft | 26.2 | Required |
+| Minecraft | 26.3 | Required |
 | Fabric Loader | ≥ 0.19.5 | Required |
-| Fabric API | 0.160.0+26.2 | Required |
+| Fabric API | 0.160.5+26.3 | Required |
 | Fabric Language Kotlin | 1.14.1+kotlin.2.4.20 | Required |
-| YACL (YetAnotherConfigLib) | 3.9.6+26.2-fabric | Required |
+| YACL (YetAnotherConfigLib) | 3.9.6+26.3-fabric | Required |
 | Java | ≥ 25 | Required |
-| LambDynamicLights | 4.12.4+26.2 | Optional (for dynamic lighting) |
-| Mod Menu | 20.0.2+26.2 | Optional (for config screen) |
-| JEI / Jade / Sodium / Iris / Resourcify | latest | Dev-only (`localRuntime`, never bundled) |
+| LambDynamicLights | 4.13.0+26.3 | Optional (for dynamic lighting) |
+| Mod Menu | 21.0.0-beta.1+26.3 | Optional (for config screen) |
+| Jade / Sodium / Iris / Resourcify | latest | Dev-only (`localRuntime`, never bundled) |
 
 Versions live in `gradle.properties`. Required-mod versions are the minimum the mod is built
 against; `fabric.mod.json` keeps broad `*` / range constraints so newer builds satisfy them.
