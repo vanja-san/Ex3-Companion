@@ -9,7 +9,7 @@
 
 *A loyal floating companion for Minecraft: Java Edition — craft its core, slot it in, and it follows you on your adventures.*
 
-[![Version](https://img.shields.io/badge/Version-1.3.4-181717)](https://github.com/vanja-san/Ex3Companion)
+[![Version](https://img.shields.io/badge/Version-1.3.5-181717)](https://github.com/vanja-san/Ex3Companion)
 [![Minecraft](https://img.shields.io/badge/Minecraft-26.3-red)](#)
 [![Mod Loader](https://img.shields.io/badge/Mod%20Loader-Fabric-blue)](https://fabricmc.net)
 [![License](https://img.shields.io/badge/License-CC0--1.0-brightgreen)](LICENSE)
@@ -77,7 +77,7 @@ Settings are edited in-game via **Mod Menu → Ex³ Companion** and split into t
 ## Installation
 
 1. Install [Fabric Loader](https://fabricmc.net/use/installer/) for Minecraft 26.3.
-2. Copy `Ex3Companion-v1.3.4-mc26.3-Fabric.jar` into `mods/` (on your server **and** every client to see it on multiplayer).
+2. Copy `Ex3Companion-v1.3.5-mc26.3-Fabric.jar` into `mods/` (on your server **and** every client to see it on multiplayer).
 3. Add the required dependencies from the table above to the same `mods/` folder.
 4. Launch the game.
 
