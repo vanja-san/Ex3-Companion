@@ -53,19 +53,16 @@ class CompanionCombat(private val e: CompanionEntity) {
 	 */
 	fun tick(owner: Player, currentMoodPulse: Float): CombatTickResult {
 		val target = combatTarget
-		val cfg = CompanionConfig.get().combat
-		val movCfg = CompanionConfig.get().movement
-		val exploreCfg = CompanionConfig.get().explore
-		val abortDistSq = exploreCfg.abortDistance * exploreCfg.abortDistance
+		val abortDistSq = CompanionConfig.exploreAbortDistance * CompanionConfig.exploreAbortDistance
 
 		val deadOrGone = target == null || !target.isAlive || target.isRemoved
-		val tooFar = target != null && e.distanceToSqr(target) > cfg.abortDistance * cfg.abortDistance
-		val ownerTooFar = e.distanceToSqr(owner) > cfg.ownerAbortDistance * cfg.ownerAbortDistance
+		val tooFar = target != null && e.distanceToSqr(target) > CompanionConfig.combatAbortDistance * CompanionConfig.combatAbortDistance
+		val ownerTooFar = e.distanceToSqr(owner) > CompanionConfig.combatOwnerAbortDistance * CompanionConfig.combatOwnerAbortDistance
 
 		val notAttacking = target != null && !isAttackingOwner(target, owner) && !isTargetingCompanion(target)
 		if (notAttacking) {
 			noTargetTicks++
-			if (noTargetTicks >= cfg.noTargetTimeout) {
+			if (noTargetTicks >= CompanionConfig.combatNoTargetTimeout) {
 				stopCombat()
 				return CombatTickResult(
 					disengaged = true,
@@ -90,7 +87,7 @@ class CompanionCombat(private val e: CompanionEntity) {
 			}
 			lastTargetHealth = target.health
 
-			if (staleTargetTicks >= cfg.staleTargetTimeout) {
+			if (staleTargetTicks >= CompanionConfig.combatStaleTargetTimeout) {
 				stopCombat()
 				return CombatTickResult(
 					disengaged = true,
@@ -131,7 +128,7 @@ class CompanionCombat(private val e: CompanionEntity) {
 			target!!.y + target.bbHeight + 0.8,
 			owner.eyePosition.y + ATTACK_HOVER_MAX_ABOVE_OWNER,
 		)
-		val attackTarget = standoffPosition(target, hoverY, cfg.preferredRange)
+		val attackTarget = standoffPosition(target, hoverY, CompanionConfig.combatPreferredRange)
 
 		val finalTarget = if (e.isPositionPassable(attackTarget) && e.canSeePosition(attackTarget)) {
 			attackTarget
@@ -144,10 +141,10 @@ class CompanionCombat(private val e: CompanionEntity) {
 			if (e.isPositionPassable(fallback)) fallback else attackTarget
 		}
 
-		val speed = if (e.position().distanceToSqr(finalTarget) > CATCH_UP_DISTANCE_SQ) movCfg.catchUpSpeed else movCfg.normalSpeed
+		val speed = if (e.position().distanceToSqr(finalTarget) > CATCH_UP_DISTANCE_SQ) CompanionConfig.movementCatchUpSpeed else CompanionConfig.movementNormalSpeed
 
 		attackCooldown--
-		val fireRangeSq = cfg.fireRange * cfg.fireRange
+		val fireRangeSq = CompanionConfig.combatFireRange * CompanionConfig.combatFireRange
 		var mood = currentMoodPulse
 		if (attackCooldown <= 0 && e.distanceToSqr(target) < fireRangeSq && e.hasLineOfSight(target)) {
 			fireBeam(target)
@@ -218,17 +215,16 @@ class CompanionCombat(private val e: CompanionEntity) {
 
 	private fun awardKillXp() {
 		val owner = e.ownerPlayer() ?: return
-		CoreSlotManager.addCompanionXp(owner, CompanionConfig.get().combat.xpPerKill)
+		CoreSlotManager.addCompanionXp(owner, CompanionConfig.combatXpPerKill)
 	}
 
 	private fun findTarget(owner: Player): LivingEntity? {
-		val cfg = CompanionConfig.get().combat
-		val mode = cfg.combatMode
+		val mode = CompanionConfig.combatCombatMode
 
 		return when (mode) {
-			CombatMode.DEFENDER -> findDefenderTarget(owner, cfg.searchRadius)
-			CombatMode.AGGRESSIVE -> findAggressiveTarget(owner, cfg.searchRadius * 2.0)
-			CombatMode.STRATEGIC -> findStrategicTarget(owner, cfg.searchRadius * 1.5)
+			CombatMode.DEFENDER -> findDefenderTarget(owner, CompanionConfig.combatSearchRadius)
+			CombatMode.AGGRESSIVE -> findAggressiveTarget(owner, CompanionConfig.combatSearchRadius * 2.0)
+			CombatMode.STRATEGIC -> findStrategicTarget(owner, CompanionConfig.combatSearchRadius * 1.5)
 		}
 	}
 
@@ -300,8 +296,7 @@ class CompanionCombat(private val e: CompanionEntity) {
 	 * same tier but significantly closer).
 	 */
 	private fun findBetterTarget(owner: Player, current: LivingEntity?): LivingEntity? {
-		val cfg = CompanionConfig.get().combat
-		val radius = cfg.searchRadius
+		val radius = CompanionConfig.combatSearchRadius
 		val candidates = hostileMobs(owner, radius) { e.canSeePosition(it.eyePosition) }
 		if (candidates.isEmpty()) return null
 

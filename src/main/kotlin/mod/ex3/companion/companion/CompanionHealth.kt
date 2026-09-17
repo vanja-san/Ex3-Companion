@@ -26,9 +26,8 @@ class CompanionHealth(private val e: CompanionEntity) {
 	/** Regenerates health each tick if below max. */
 	fun regenerate() {
 		if (e.health < e.maxHealth) {
-			val cfg = CompanionConfig.get().health
-			val scale = 1f + (e.readLevel() - 1) * cfg.regenLevelScale
-			e.setCompanionHealth((e.health + cfg.regenPerTick * scale).coerceAtMost(e.maxHealth))
+			val scale = 1f + (e.readLevel() - 1) * CompanionConfig.healthRegenLevelScale
+			e.setCompanionHealth((e.health + CompanionConfig.healthRegenPerTick * scale).coerceAtMost(e.maxHealth))
 		}
 	}
 
@@ -39,16 +38,15 @@ class CompanionHealth(private val e: CompanionEntity) {
 	fun healOwner() {
 		val owner = e.ownerPlayer() ?: return
 		val lvl = e.readLevel()
-		val cfg = CompanionConfig.get().healing
-		if (lvl < cfg.unlockLevel) return
+		if (lvl < CompanionConfig.healingUnlockLevel) return
 		if (owner.health >= owner.maxHealth) return
 		if (e.currentState() == BrainState.ATTACK) return
 
 		val distSq = e.distanceToSqr(owner)
-		val rangeSq = cfg.range * cfg.range
+		val rangeSq = CompanionConfig.healingRange * CompanionConfig.healingRange
 		if (distSq > rangeSq) return
 
-		val healPerTick = (cfg.basePerTick + ((lvl - cfg.unlockLevel) * cfg.perLevelAbove)).coerceAtMost(cfg.maxPerTick)
+		val healPerTick = (CompanionConfig.healingBasePerTick + ((lvl - CompanionConfig.healingUnlockLevel) * CompanionConfig.healingPerLevelAbove)).coerceAtMost(CompanionConfig.healingMaxPerTick)
 		val newHealth = (owner.health + healPerTick).coerceAtMost(owner.maxHealth)
 		if (newHealth > owner.health) {
 			owner.health = newHealth

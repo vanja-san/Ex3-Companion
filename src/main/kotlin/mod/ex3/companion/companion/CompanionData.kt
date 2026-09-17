@@ -49,13 +49,13 @@ data class CompanionData(
 		val speedComp = Component.translatable("ex3companion.tooltip.attack_speed", intervalSec).withStyle(ChatFormatting.GRAY)
 		tooltip.accept(dmgComp.append(speedComp))
 
-		val healCfg = CompanionConfig.get().healing
-		if (level >= healCfg.unlockLevel) {
-			val healPerSec = "%.1f".format((healCfg.basePerTick + (level - healCfg.unlockLevel) * healCfg.perLevelAbove).coerceAtMost(healCfg.maxPerTick) * 20)
+		val healCfg = CompanionConfig
+		if (level >= healCfg.healingUnlockLevel) {
+			val healPerSec = "%.1f".format((healCfg.healingBasePerTick + (level - healCfg.healingUnlockLevel) * healCfg.healingPerLevelAbove).coerceAtMost(healCfg.healingMaxPerTick) * 20)
 			tooltip.accept(Component.translatable("ex3companion.tooltip.healing_active", healPerSec).withStyle(ChatFormatting.LIGHT_PURPLE))
 		} else {
-			val lvlLeft = healCfg.unlockLevel - level
-			tooltip.accept(Component.translatable("ex3companion.tooltip.healing_locked", healCfg.unlockLevel, lvlLeft).withStyle(ChatFormatting.DARK_GRAY))
+			val lvlLeft = healCfg.healingUnlockLevel - level
+			tooltip.accept(Component.translatable("ex3companion.tooltip.healing_locked", healCfg.healingUnlockLevel, lvlLeft).withStyle(ChatFormatting.DARK_GRAY))
 		}
 
 		if (health < maxHealth(level)) {
@@ -81,43 +81,38 @@ data class CompanionData(
 	companion object {
 		const val MIN_HEALTH: Float = 0f
 
-		val DEFAULT: CompanionData get() = CompanionData(null, CompanionConfig.get().health.base, 0, 1, 0L)
+		val DEFAULT: CompanionData get() = CompanionData(null, CompanionConfig.healthBase, 0, 1, 0L)
 
 		/** XP required to advance from [level] to [level] + 1. Grows quadratically so late levels are harder. */
-		fun xpToNextLevel(level: Int): Int = level * level * CompanionConfig.get().xp.formulaMultiplier
+		fun xpToNextLevel(level: Int): Int = level * level * CompanionConfig.xpFormulaMultiplier
 
 		/** Maximum health a companion of the given level can have. */
 		fun maxHealth(level: Int): Float {
-			val cfg = CompanionConfig.get().health
-			val base = cfg.base + (level - 1) * cfg.perLevel
-			return base.coerceAtMost(cfg.cap)
+			val base = CompanionConfig.healthBase + (level - 1) * CompanionConfig.healthPerLevel
+			return base.coerceAtMost(CompanionConfig.healthCap)
 		}
 
 		/** Attack interval in ticks for the given level. */
-		fun attackIntervalTicks(level: Int): Int {
-			val cfg = CompanionConfig.get().combat
-			return (cfg.intervalBase - ((level - 1) * cfg.intervalPerLevel)).coerceAtLeast(cfg.intervalMin)
-		}
+		fun attackIntervalTicks(level: Int): Int =
+			(CompanionConfig.combatIntervalBase - ((level - 1) * CompanionConfig.combatIntervalPerLevel)).coerceAtLeast(CompanionConfig.combatIntervalMin)
 
 		/** Attack damage for the given level. */
-		fun damage(level: Int): Float {
-			val cfg = CompanionConfig.get().combat
-			return (cfg.damageBase + ((level - 1) * cfg.damagePerLevel)).coerceAtMost(cfg.damageCap)
-		}
+		fun damage(level: Int): Float =
+			(CompanionConfig.combatDamageBase + ((level - 1) * CompanionConfig.combatDamagePerLevel)).coerceAtMost(CompanionConfig.combatDamageCap)
 
 		private fun parseId(raw: String): UUID? =
 			if (raw.isEmpty()) null else runCatching { UUID.fromString(raw) }.getOrNull()
 
 	/**
-	 * NOTE: The default values for optional fields reference CompanionConfig.get()
-	 * at codec-build time (class load). If the config is reloaded later, these defaults
-	 * won't update. This is fine because existing save data always has explicit values,
-	 * and the codec defaults are only used for brand-new items.
+	 * NOTE: The default values for optional fields reference CompanionConfig's
+	 * static entries at codec-build time (class load). If the config is reloaded later,
+	 * these defaults won't update. This is fine because existing save data always has
+	 * explicit values, and the codec defaults are only used for brand-new items.
 	 */
 	val CODEC: Codec<CompanionData> = RecordCodecBuilder.create { instance ->
 			instance.group(
 				Codec.STRING.optionalFieldOf("companion_id", "").forGetter(CompanionData::idString),
-				Codec.FLOAT.optionalFieldOf("health", CompanionConfig.get().health.base).forGetter(CompanionData::health),
+				Codec.FLOAT.optionalFieldOf("health", CompanionConfig.healthBase).forGetter(CompanionData::health),
 				Codec.INT.optionalFieldOf("xp", 0).forGetter(CompanionData::xp),
 				Codec.INT.optionalFieldOf("level", 1).forGetter(CompanionData::level),
 				Codec.LONG.optionalFieldOf("revive_at", 0L).forGetter(CompanionData::reviveAt),

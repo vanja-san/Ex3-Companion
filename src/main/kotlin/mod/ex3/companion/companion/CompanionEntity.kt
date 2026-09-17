@@ -228,7 +228,7 @@ class CompanionEntity(type: EntityType<CompanionEntity>, level: Level) : Pathfin
 
 	// Companion only takes damage from mob attacks, projectiles, explosions, and lava.
 	override fun hurtServer(level: ServerLevel, source: DamageSource, damage: Float): Boolean {
-		if (CompanionConfig.get().health.invulnerable) return false
+		if (CompanionConfig.healthInvulnerable) return false
 		if (!isAllowedDamageSource(source)) return false
 
 		val hpAfter = (health - damage).coerceAtLeast(0f)
@@ -288,7 +288,7 @@ class CompanionEntity(type: EntityType<CompanionEntity>, level: Level) : Pathfin
 
 		fun createAttributes(): AttributeSupplier.Builder =
 			createMobAttributes()
-				.add(Attributes.MAX_HEALTH, CompanionConfig.get().health.base.toDouble())
+				.add(Attributes.MAX_HEALTH, CompanionConfig.healthBase.toDouble())
 				.add(Attributes.FLYING_SPEED, 0.6)
 	}
 }

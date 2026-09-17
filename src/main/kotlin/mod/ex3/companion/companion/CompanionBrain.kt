@@ -49,7 +49,7 @@ class CompanionBrain(private val e: CompanionEntity, private val combat: Compani
 			val distanceToOwner = e.distanceToSqr(owner)
 
 			// Safety net: snap-teleport when too far (e.g. owner used elytra, portal, etc.)
-			val teleportDistSq = CompanionConfig.get().movement.teleportDistance.let { it * it }
+			val teleportDistSq = CompanionConfig.movementTeleportDistance.let { it * it }
 			if (distanceToOwner > teleportDistSq) {
 				val spawnPos = e.computeSpawnPosition(owner)
 				e.setPos(spawnPos.x, spawnPos.y, spawnPos.z)
@@ -80,11 +80,10 @@ class CompanionBrain(private val e: CompanionEntity, private val combat: Compani
 		val target = orbitAroundOwner(computeFollowTarget(owner), owner)
 		e.flightTarget = target
 
-		val cfg = CompanionConfig.get().movement
 		e.speedLimit = when {
-			distanceSq > OWNER_FAR_DISTANCE_SQ -> cfg.catchUpSpeed
-			e.position().distanceToSqr(target) > CATCH_UP_DISTANCE_SQ -> cfg.fastSpeed
-			else -> cfg.normalSpeed
+			distanceSq > OWNER_FAR_DISTANCE_SQ -> CompanionConfig.movementCatchUpSpeed
+			e.position().distanceToSqr(target) > CATCH_UP_DISTANCE_SQ -> CompanionConfig.movementFastSpeed
+			else -> CompanionConfig.movementNormalSpeed
 		}
 		e.lookControl.setLookAt(owner.eyePosition)
 
@@ -102,9 +101,8 @@ class CompanionBrain(private val e: CompanionEntity, private val combat: Compani
 		}
 
 		// Occasionally start exploring when things are calm.
-		val exploreCfg = CompanionConfig.get().explore
 		exploreCooldown--
-		if (exploreCooldown <= 0 && distanceSq < exploreCfg.maxOwnerDistance * exploreCfg.maxOwnerDistance && Random.nextFloat() < exploreCfg.chance) {
+		if (exploreCooldown <= 0 && distanceSq < CompanionConfig.exploreMaxOwnerDistance * CompanionConfig.exploreMaxOwnerDistance && Random.nextFloat() < CompanionConfig.exploreChance) {
 			startExploration(owner)
 		}
 	}
@@ -185,9 +183,8 @@ class CompanionBrain(private val e: CompanionEntity, private val combat: Compani
 			return
 		}
 		e.flightTarget = target
-		e.speedLimit = CompanionConfig.get().movement.exploreSpeed
-		val cfg = CompanionConfig.get().explore
-		exploreTimer = cfg.durationMin + rng.nextInt(cfg.durationVariance)
+		e.speedLimit = CompanionConfig.movementExploreSpeed
+		exploreTimer = CompanionConfig.exploreDurationMin + rng.nextInt(CompanionConfig.exploreDurationVariance)
 		scanTimer = 0
 		e.setState(BrainState.EXPLORE)
 		moodPulse = 1f
@@ -197,7 +194,7 @@ class CompanionBrain(private val e: CompanionEntity, private val combat: Compani
 	private fun findInterestingTarget(owner: Player): Vec3? {
 		val level = owner.level()
 		val center = owner.blockPosition()
-		val r = CompanionConfig.get().explore.searchRadius
+		val r = CompanionConfig.exploreSearchRadius
 		val min = center.offset(-r, -r, -r)
 		val max = center.offset(r, r, r)
 		val memory = e.memory
@@ -227,8 +224,7 @@ class CompanionBrain(private val e: CompanionEntity, private val combat: Compani
 		if (combat.tryStartCombat(owner)) return
 
 		exploreTimer--
-		val cfg = CompanionConfig.get().explore
-		val abortDistSq = cfg.abortDistance * cfg.abortDistance
+		val abortDistSq = CompanionConfig.exploreAbortDistance * CompanionConfig.exploreAbortDistance
 
 		val currentTarget = e.flightTarget
 		if (currentTarget != null && !e.canSeePosition(currentTarget)) {
@@ -266,7 +262,7 @@ class CompanionBrain(private val e: CompanionEntity, private val combat: Compani
 			}
 			scanTimer--
 			if (scanTimer <= 0) {
-				scanTimer = cfg.scanIntervalMin + rng.nextInt(cfg.scanIntervalVariance)
+				scanTimer = CompanionConfig.exploreScanIntervalMin + rng.nextInt(CompanionConfig.exploreScanIntervalVariance)
 				val angle = rng.nextDouble() * Math.PI * 2
 				val scanOffsetX = cos(angle) * 4.0
 				val scanOffsetZ = sin(angle) * 4.0
@@ -274,7 +270,7 @@ class CompanionBrain(private val e: CompanionEntity, private val combat: Compani
 				e.sounds.playBeep(pitch = 1.1f + (rng.nextFloat() * 0.25f))
 			}
 		} else if (target != null) {
-			e.speedLimit = CompanionConfig.get().movement.exploreSpeed
+			e.speedLimit = CompanionConfig.movementExploreSpeed
 			e.lookControl.setLookAt(target)
 		}
 	}
@@ -327,10 +323,8 @@ class CompanionBrain(private val e: CompanionEntity, private val combat: Compani
 
 	private fun tickCount(): Int = e.tickCount
 
-	private fun randomExploreCooldown(): Int {
-		val cfg = CompanionConfig.get().explore
-		return cfg.cooldownMin + rng.nextInt(cfg.cooldownVariance)
-	}
+	private fun randomExploreCooldown(): Int =
+		CompanionConfig.exploreCooldownMin + rng.nextInt(CompanionConfig.exploreCooldownVariance)
 
 	companion object {
 		private val rng = Random.Default

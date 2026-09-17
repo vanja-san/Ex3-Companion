@@ -22,9 +22,8 @@ repositories {
 			includeGroup("mezz.jei")
 		}
 	}
-	maven("https://maven.isxander.dev/releases") { // YACL
-		name = "Xander Maven"
-	}
+	// configlibtxf (TXFConfig) is published to Maven Central.
+	mavenCentral()
 }
 
 loom {
@@ -53,8 +52,14 @@ dependencies {
 	implementation("net.fabricmc.fabric-api:fabric-api:${providers.gradleProperty("fabric_api_version").get()}")
     implementation("net.fabricmc:fabric-language-kotlin:${providers.gradleProperty("fabric_kotlin_version").get()}")
 
-	// Config screen library
-	implementation("dev.isxander:yet-another-config-lib:${providers.gradleProperty("yacl_version").get()}")
+	// Config screen library: configlibtxf (TXFConfig). Bundled jar-in-jar via include():
+	// its own fabric.mod.json is loaded, and its AutoModMenu provides our config screen
+	// factory to Mod Menu. We register our own ModMenuApi (ModMenuIntegration) which
+	// takes priority so we can gate what opens from the config button (server settings
+	// are withheld outside of a world).
+	val configlibtxf = "io.github.jahirxtrap:configlibtxf:${providers.gradleProperty("configlibtxf_version").get()}"
+	implementation(configlibtxf)
+	include(configlibtxf)
 
 	// Dev-only test mods: present in runClient, never compiled against, never bundled into the jar.
 	// JEI is currently DISABLED (no 26.3 build yet) — the 26.2 jar crashes the datagen/client launch

@@ -9,7 +9,7 @@
 
 *A loyal floating companion for Minecraft: Java Edition — craft its core, slot it in, and it follows you on your adventures.*
 
-[![Version](https://img.shields.io/badge/Version-1.3.5-181717)](https://github.com/vanja-san/Ex3Companion)
+[![Version](https://img.shields.io/badge/Version-1.4.0-181717)](https://github.com/vanja-san/Ex3Companion)
 [![Minecraft](https://img.shields.io/badge/Minecraft-26.3-red)](#)
 [![Mod Loader](https://img.shields.io/badge/Mod%20Loader-Fabric-blue)](https://fabricmc.net)
 [![License](https://img.shields.io/badge/License-CC0--1.0-brightgreen)](LICENSE)
@@ -46,10 +46,12 @@
 
 ## Configuration
 
-Settings are edited in-game via **Mod Menu → Ex³ Companion** and split into two categories:
+Settings are edited in-game via **Mod Menu → Ex³ Companion** (server settings only):
 
-- **Server** — gameplay tuning, stored in `config/ex3-companion.json` on the server. The server syncs its values to every connected player; operators can edit them live (changes apply and save server-side), non-operators see the page as read-only/inactive.
-- **Client** — local-only options, stored in `config/ex3-companion-client.json` on your machine (e.g. the companion's dynamic light).
+- Gameplay tuning is stored in `config/ex3-companion.json5` and synced from the server to every connected player. Its values are server-authoritative: while on a dedicated server they are read-only in-game (edit the file server-side to tune gameplay), and the settings button is only shown to operators. Settings are grouped under section headers (Health, Combat, Healing, Movement, Exploration, Leveling).
+
+> **Note:** this release changes the config storage/layout from nested JSON to flat JSON5, so existing
+> values reset to defaults once. Re-tune your settings after updating.
 
 | Group | Key settings |
 |-------|--------------|
@@ -59,7 +61,6 @@ Settings are edited in-game via **Mod Menu → Ex³ Companion** and split into t
 | Movement | follow speed, catch-up speed, teleport distance |
 | Exploration | cooldown, chance, duration, search radius |
 | XP | level cap, formula multiplier |
-| Client · Rendering | dynamic light toggle |
 
 ## Requirements
 
@@ -69,15 +70,16 @@ Settings are edited in-game via **Mod Menu → Ex³ Companion** and split into t
 | Fabric Loader | ≥ 0.19.5 | Required |
 | Fabric API | 0.160.5+26.3 | Required |
 | Fabric Language Kotlin | 1.14.1+kotlin.2.4.20 | Required |
-| YACL (YetAnotherConfigLib) | 3.9.6+26.3-fabric | Required |
 | Java | ≥ 25 | Required |
 | LambDynamicLights | 4.13.0+26.3 | Optional |
 | Mod Menu | 21.0.0-beta.1+26.3 | Optional |
 
+ConfigLibTXF (via ConfigLib, bundled inside the mod JAR) powers the in-game settings screen, so it does **not** need to be installed separately.
+
 ## Installation
 
 1. Install [Fabric Loader](https://fabricmc.net/use/installer/) for Minecraft 26.3.
-2. Copy `Ex3Companion-v1.3.5-mc26.3-Fabric.jar` into `mods/` (on your server **and** every client to see it on multiplayer).
+2. Copy `Ex3Companion-v1.4.0-mc26.3-Fabric.jar` into `mods/` (on your server **and** every client to see it on multiplayer).
 3. Add the required dependencies from the table above to the same `mods/` folder.
 4. Launch the game.
 

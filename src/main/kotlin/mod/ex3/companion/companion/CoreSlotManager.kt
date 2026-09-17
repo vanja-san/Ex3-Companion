@@ -283,7 +283,7 @@ object CoreSlotManager {
 		val stack = container.getItem(0)
 		if (stack.`is`(ModItems.COMPANION_CORE)) {
 			val data = readData(stack)
-			val respawnTime = player.level().gameTime + CompanionConfig.get().health.reviveDelayTicks
+			val respawnTime = player.level().gameTime + CompanionConfig.healthReviveDelayTicks
 			writeData(player, stack, data.withHealth(0f).withReviveAt(respawnTime))
 			lastSyncedHealth.remove(player.uuid)
 		}
@@ -300,7 +300,7 @@ object CoreSlotManager {
 		val stack = container.getItem(0)
 		if (stack.`is`(ModItems.COMPANION_CORE)) {
 			val data = readData(stack)
-			val respawnTime = player.level().gameTime + CompanionConfig.get().health.reviveDelayTicks
+			val respawnTime = player.level().gameTime + CompanionConfig.healthReviveDelayTicks
 			writeData(player, stack, data.withHealth(0f).withReviveAt(respawnTime))
 		}
 		despawnCompanion(player, withPoof = true)
@@ -341,7 +341,6 @@ object CoreSlotManager {
 	 * health is full.
 	 */
 	fun tickRevives(server: MinecraftServer) {
-		val cfg = CompanionConfig.get()
 		for (player in server.playerList.players) {
 			if (player.level().isClientSide) continue
 
@@ -357,8 +356,8 @@ object CoreSlotManager {
 
 			// Revive delay expired: regenerate health on the core item (works even in inventory).
 			if (data.health < max) {
-				val scale = 1f + (data.level - 1) * cfg.health.regenLevelScale
-				val newHealth = (data.health + cfg.health.regenPerTick * scale).coerceAtMost(max)
+				val scale = 1f + (data.level - 1) * CompanionConfig.healthRegenLevelScale
+				val newHealth = (data.health + CompanionConfig.healthRegenPerTick * scale).coerceAtMost(max)
 				writeData(player, coreStack, data.withHealth(newHealth))
 				continue
 			}
@@ -488,7 +487,7 @@ object CoreSlotManager {
 
 		val data = readData(stack)
 		// At level cap, XP is still accumulated (for display) but no more level-ups.
-		val levelCap = CompanionConfig.get().xp.levelCap
+		val levelCap = CompanionConfig.xpLevelCap
 		var xp = data.xp + amount
 		var level = data.level
 		while (level < levelCap && xp >= CompanionData.xpToNextLevel(level)) {

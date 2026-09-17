@@ -3,6 +3,7 @@
 	"package": "mod.ex3.companion.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
+		"ConfigScreenMixin",
 		"ContainerScreenMixin",
 		"CreativeInventoryScreenMixin",
 		"SlotAccessor"

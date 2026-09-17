@@ -1,11 +1,8 @@
 package mod.ex3.companion.client
 
-import mod.ex3.companion.client.config.CompanionClientConfig
 import mod.ex3.companion.client.render.CompanionRenderer
 import mod.ex3.companion.companion.CoreSlotBackingContainer
-import mod.ex3.companion.config.CompanionConfig
 import mod.ex3.companion.network.CompanionSlotPayload
-import mod.ex3.companion.network.ConfigSyncPayload
 import mod.ex3.companion.registry.ModEntities
 import mod.ex3.companion.registry.ModItems
 import net.fabricmc.api.ClientModInitializer
@@ -20,18 +17,7 @@ object Ex3Client : ClientModInitializer {
 	private var lastHasCore: Boolean? = null
 
 	override fun onInitializeClient() {
-		CompanionClientConfig.load()
-
 		EntityRenderers.register(ModEntities.COMPANION, ::CompanionRenderer)
-
-		// Adopt the server's gameplay config so tooltips, the HUD and the config
-		// GUI all reflect server-authoritative values. Replaced on every sync.
-		ClientPlayNetworking.registerGlobalReceiver(ConfigSyncPayload.TYPE) { payload, _ ->
-			val parsed = CompanionConfig.parse(payload.json)
-			if (parsed != null) {
-				CompanionConfig.applyParsed(parsed)
-			}
-		}
 
 		ClientTickEvents.END_CLIENT_TICK.register { client ->
 			syncCompanionSlot(client)

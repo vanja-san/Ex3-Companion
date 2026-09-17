@@ -1,0 +1,15 @@
+{
+	"required": false,
+	"package": "mod.ex3.companion.modmenu",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"ModsScreenMixin",
+		"ModListEntryMixin"
+	],
+	"overwrites": {
+		"requireAnnotations": true
+	},
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

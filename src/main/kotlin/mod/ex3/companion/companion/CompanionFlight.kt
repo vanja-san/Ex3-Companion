@@ -62,7 +62,6 @@ class CompanionFlight(private val e: CompanionEntity) {
 		openNearbyDoors()
 
 		val pos = e.position()
-		val movCfg = CompanionConfig.get().movement
 
 		// --- Stuck detection ---
 		val distToTarget = pos.distanceTo(goal)
@@ -133,11 +132,11 @@ class CompanionFlight(private val e: CompanionEntity) {
 		val desired = if (dist < ARRIVAL) {
 			Vec3.ZERO
 		} else {
-			val mag = min(e.speedLimit, dist * movCfg.followGain)
+			val mag = min(e.speedLimit, dist * CompanionConfig.movementFollowGain)
 			to.scale(mag / dist)
 		}
 
-		var dm = e.deltaMovement.add(desired.subtract(e.deltaMovement).scale(movCfg.accel))
+		var dm = e.deltaMovement.add(desired.subtract(e.deltaMovement).scale(CompanionConfig.movementAccel))
 
 		val recovering = recoveryWaypoint != null
 
@@ -169,7 +168,7 @@ class CompanionFlight(private val e: CompanionEntity) {
 
 		val h = sqrt((dm.x * dm.x) + (dm.z * dm.z))
 		if (h > e.speedLimit) dm = Vec3((dm.x / h) * e.speedLimit, dm.y, (dm.z / h) * e.speedLimit)
-		dm = Vec3(dm.x, dm.y.coerceIn(-movCfg.maxVertical, movCfg.maxVertical), dm.z)
+		dm = Vec3(dm.x, dm.y.coerceIn(-CompanionConfig.movementMaxVertical, CompanionConfig.movementMaxVertical), dm.z)
 
 		e.deltaMovement = dm
 		e.move(net.minecraft.world.entity.MoverType.SELF, dm)

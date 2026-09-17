@@ -25,6 +25,12 @@
 				"adapter": "kotlin"
 			}
 		],
+		"modmenu": [
+			{
+				"value": "mod.ex3.companion.client.ModMenuIntegration",
+				"adapter": "kotlin"
+			}
+		],
 		"fabric-datagen": [
 			{
 				"value": "mod.ex3.companion.client.Ex3DataGenerator",
@@ -36,24 +42,18 @@
 				"value": "mod.ex3.companion.client.CompanionDynamicLights",
 				"adapter": "kotlin"
 			}
-		],
-		"modmenu": [
-			{
-				"value": "mod.ex3.companion.client.ModMenuIntegration",
-				"adapter": "kotlin"
-			}
 		]
 	},
 	"mixins": [
 		"ex3.mixins.json",
-		"ex3.client.mixins.json"
+		"ex3.client.mixins.json",
+		"ex3.modmenu.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=0.19.5",
 		"minecraft": "~26.3",
 		"java": ">=25",
 		"fabric-api": "*",
-		"fabric-language-kotlin": "*",
-		"yet_another_config_lib_v3": "*"
+		"fabric-language-kotlin": "*"
 	}
 }
