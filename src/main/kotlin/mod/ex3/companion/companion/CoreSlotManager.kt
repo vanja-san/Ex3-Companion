@@ -335,21 +335,39 @@ object CoreSlotManager {
 	}
 
 	/**
-	 * Called every server tick. Finds the companion core wherever it is in the
-	 * player's inventory, regenerates health after the revive delay expires,
-	 * and only spawns the companion when the core is in the companion slot AND
-	 * health is full.
+	 * Called every server tick. Reconciles the companion entity with the core slot:
+	 * despawns a live companion whenever its core is no longer in the companion slot,
+	 * regenerates health after the revive delay expires, and only spawns the companion
+	 * when the core is in the companion slot AND health is full.
 	 */
 	fun tickRevives(server: MinecraftServer) {
 		for (player in server.playerList.players) {
 			if (player.level().isClientSide) continue
 
-			val coreStack = findCoreAnywhere(player) ?: continue
+			val coreStack = findCoreAnywhere(player) ?: run {
+				// No core on the player at all — the companion must not exist.
+				// Guard with the cache first: players without a core never have a
+				// cached companion, so this avoids a spatial query every tick for
+				// every companion-less player on large servers.
+				if (companionCache.containsKey(player.uuid)) {
+					despawnCompanion(player, withPoof = false)
+				}
+				continue
+			}
 			val data = readData(coreStack)
 			val max = CompanionData.maxHealth(data.level)
 
-			// Companion is alive — nothing to do here.
-			if (findCompanion(player) != null) continue
+			// Companion is alive — keep it only while the core is in the companion slot.
+			// Vanilla click handling can empty the slot without firing Server-side
+			// container.setChanged(), so the slot-change event alone can't be trusted
+			// to despawn the companion; verify every tick instead.
+			val alive = findCompanion(player)
+			if (alive != null) {
+				if (!isInCompanionSlot(player, coreStack)) {
+					despawnCompanion(player, withPoof = false)
+				}
+				continue
+			}
 
 			// Still in revive cooldown — do not regenerate health yet.
 			if (data.reviveAt > player.level().gameTime) continue

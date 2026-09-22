@@ -1,14 +1,20 @@
+import org.gradle.api.tasks.bundling.AbstractArchiveTask
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-	id("net.fabricmc.fabric-loom")
+	alias(libs.plugins.fabric.loom)
 	`maven-publish`
 	// Generates .project/.classpath for IDEs (Eclipse/JDT): ensures the Kotlin
 	// compiled output is visible to the Java language server in VS Code.
-    eclipse
-	id("org.jetbrains.kotlin.jvm") version "2.4.20"
+	eclipse
+	alias(libs.plugins.kotlin.jvm)
 }
 
+// Repositories live here (project level) rather than settings dependencyResolutionManagement:
+// Fabric Loom registers its own project-level repositories, and per
+// RepositoriesMode.PREFER_SETTINGS that shadows settings-declared repos, which
+// would silently drop Modrinth/JEI from localRuntime resolution. project-level
+// repos append to Loom's instead. Content filtering narrows each repo's scope.
 repositories {
 	// Modrinth first: reachable and hosts all maven.modrinth artifacts.
 	maven("https://api.modrinth.com/maven") { // Jade, Sodium, Iris, Mod Menu, etc.
@@ -44,45 +50,42 @@ fabricApi {
 }
 
 dependencies {
-	// To change the versions see the gradle.properties file
-	minecraft("com.mojang:minecraft:${providers.gradleProperty("minecraft_version").get()}")
-	implementation("net.fabricmc:fabric-loader:${providers.gradleProperty("loader_version").get()}")
+	minecraft(libs.minecraft)
+	implementation(libs.fabric.loader)
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
-	implementation("net.fabricmc.fabric-api:fabric-api:${providers.gradleProperty("fabric_api_version").get()}")
-    implementation("net.fabricmc:fabric-language-kotlin:${providers.gradleProperty("fabric_kotlin_version").get()}")
+	implementation(libs.fabric.api)
+	implementation(libs.fabric.language.kotlin)
 
 	// Config screen library: configlibtxf (TXFConfig). Bundled jar-in-jar via include():
 	// its own fabric.mod.json is loaded, and its AutoModMenu provides our config screen
 	// factory to Mod Menu. We register our own ModMenuApi (ModMenuIntegration) which
 	// takes priority so we can gate what opens from the config button (server settings
 	// are withheld outside of a world).
-	val configlibtxf = "io.github.jahirxtrap:configlibtxf:${providers.gradleProperty("configlibtxf_version").get()}"
-	implementation(configlibtxf)
-	include(configlibtxf)
+	implementation(libs.configlibtxf)
+	include(libs.configlibtxf)
 
 	// Dev-only test mods: present in runClient, never compiled against, never bundled into the jar.
 	// JEI is currently DISABLED (no 26.3 build yet) — the 26.2 jar crashes the datagen/client launch
 	// on 26.3 (NoSuchFieldError: InputConstants.Type.KEYSYM). Re-enable once a 26.3 build exists.
-	// localRuntime("maven.modrinth:jei:${providers.gradleProperty("jei_version").get()}")
-	localRuntime("maven.modrinth:jade:${providers.gradleProperty("jade_version").get()}")
+	// localRuntime(libs.jei)
+	localRuntime(libs.jade)
 	// Resource-pack manager, dev convenience only (client-side).
-	localRuntime("maven.modrinth:resourcify:${providers.gradleProperty("resourcify_version").get()}")
+	localRuntime(libs.resourcify)
 	// Shader stack for dev testing (Iris needs Sodium).
-	localRuntime("maven.modrinth:sodium:${providers.gradleProperty("sodium_version").get()}")
-	localRuntime("maven.modrinth:iris:${providers.gradleProperty("iris_version").get()}")
+	localRuntime(libs.sodium)
+	localRuntime(libs.iris)
 
 	// Mod Menu: mod list screen + config screens, dev-only.
-	compileOnly("maven.modrinth:modmenu:${providers.gradleProperty("modmenu_version").get()}")
-	localRuntime("maven.modrinth:modmenu:${providers.gradleProperty("modmenu_version").get()}")
+	compileOnly(libs.modmenu)
+	localRuntime(libs.modmenu)
 
 	// Fabric Light API (LambDynamicLights): lets the companion emit light like a
 	// torch so shader packs bloom it. The API classes live in a jar-in-jar inside the
 	// mod, so we compile against the extracted stubs in libs/ (compileOnly keeps them
 	// off our jar) and ship the full mod via localRuntime for runClient only.
-	val lambdyn = providers.gradleProperty("lambdynlights_version").get()
 	compileOnly(files("libs/lambdynlights-api.jar", "libs/yumi-commons-event.jar"))
-	localRuntime("maven.modrinth:lambdynamiclights:$lambdyn")
+	localRuntime(libs.lambdynamiclights)
 }
 
 tasks.processResources {
@@ -102,17 +105,16 @@ tasks.processResources {
 val javacPath = providers.gradleProperty("javac.path").orNull
 tasks.withType<JavaCompile>().configureEach {
 	options.release = 25
+	options.encoding = "UTF-8"
 	if (javacPath != null) {
 		// Setting the executable implicitly enables forking in Gradle 9.
 		options.forkOptions.executable = javacPath
 	}
 }
 
-// Client Java mixins import Kotlin classes from the main source set.
-// Ensure main Kotlin is compiled before client Java so the classes are on the classpath.
-tasks.named("compileClientJava") {
-	dependsOn(tasks.named("compileKotlin"))
-}
+// Client Java mixins import Kotlin classes from the main source set. Loom wires
+// the main output (incl. Kotlin) into the client compile classpath, so Gradle
+// infers the ordering implicitly — no explicit dependsOn required.
 
 // Eclipse / VS Code: make client source set see main Kotlin output.
 eclipse {
@@ -147,16 +149,19 @@ java {
 }
 
 tasks.jar {
-	val mcVersion = providers.gradleProperty("minecraft_version").get()
-	inputs.property("mcVersion", mcVersion)
-
 	archiveBaseName.set("Ex3Companion")
-	archiveVersion.set("v${project.version}-mc$mcVersion")
 	archiveClassifier.set("Fabric")
+	archiveVersion.set(libs.versions.minecraft.map { "v${project.version}-mc$it" })
 
 	from("LICENSE") {
 		rename { "${it}_Ex3Companion" }
 	}
+}
+
+// Byte-for-byte reproducible archives (timestamps/ordering normalized).
+tasks.withType<AbstractArchiveTask>().configureEach {
+	isPreserveFileTimestamps = false
+	isReproducibleFileOrder = true
 }
 
 // configure the maven publication

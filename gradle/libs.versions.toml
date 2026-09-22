@@ -1,0 +1,31 @@
+[versions]
+loom = "1.18.1"
+minecraft = "26.3"
+loader = "0.19.5"
+fabric-api = "0.160.5+26.3"
+fabric-kotlin = "1.14.1+kotlin.2.4.20"
+configlibtxf = "26.3-2.0.5-fabric"
+jade = "lt43vWtF"
+resourcify = "tQuFUT7L"
+sodium = "bAZQdGpg"
+iris = "bAdKrpw8"
+lambdynlights = "rylKnJ4M"
+modmenu = "lcxkZSq6"
+kotlin = "2.4.20"
+
+[libraries]
+minecraft = { group = "com.mojang", name = "minecraft", version.ref = "minecraft" }
+fabric-loader = { group = "net.fabricmc", name = "fabric-loader", version.ref = "loader" }
+fabric-api = { group = "net.fabricmc.fabric-api", name = "fabric-api", version.ref = "fabric-api" }
+fabric-language-kotlin = { group = "net.fabricmc", name = "fabric-language-kotlin", version.ref = "fabric-kotlin" }
+configlibtxf = { group = "io.github.jahirxtrap", name = "configlibtxf", version.ref = "configlibtxf" }
+jade = { group = "maven.modrinth", name = "jade", version.ref = "jade" }
+resourcify = { group = "maven.modrinth", name = "resourcify", version.ref = "resourcify" }
+sodium = { group = "maven.modrinth", name = "sodium", version.ref = "sodium" }
+iris = { group = "maven.modrinth", name = "iris", version.ref = "iris" }
+lambdynamiclights = { group = "maven.modrinth", name = "lambdynamiclights", version.ref = "lambdynlights" }
+modmenu = { group = "maven.modrinth", name = "modmenu", version.ref = "modmenu" }
+
+[plugins]
+fabric-loom = { id = "net.fabricmc.fabric-loom", version.ref = "loom" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
