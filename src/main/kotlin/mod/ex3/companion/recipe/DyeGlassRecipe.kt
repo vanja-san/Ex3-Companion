@@ -30,35 +30,27 @@ import net.minecraft.world.item.crafting.display.SlotDisplay
 import net.minecraft.world.level.Level
 
 /**
- * Crafting recipe: companion_core + any dye -> the same core tinted in [color].
+ * Crafting recipe: companion_core + any dye -> the same core tinted in that dye's colour.
+ *
+ * One recipe covers all 16 colours, mirroring vanilla's [net.minecraft.world.item.crafting.DyeRecipe]:
+ * the colour is derived from the dye actually placed in the grid rather than baked into the
+ * recipe. This mod previously shipped one recipe per colour, which made every entry in the
+ * recipe book identical (names come from the result item) and needed an exact-colour match
+ * in [matches] purely to stop the wrong dye from matching every recipe.
+ *
  * Preserves every companion component (health, XP, level, memory); a vanilla shapeless
  * recipe would create a fresh item via result.create() and silently drop all of them.
  */
 class DyeGlassRecipe(
 	commonInfo: Recipe.CommonInfo,
 	bookInfo: CraftingRecipe.CraftingBookInfo,
-	val color: String,
 ) : NormalCraftingRecipe(commonInfo, bookInfo) {
 
-	override fun matches(input: CraftingInput, level: Level): Boolean {
-		var core = false
-		var dyeColor: String? = null
-		for (i in 0 until input.size()) {
-			val stack = input.getItem(i)
-			if (stack.`is`(ModItems.COMPANION_CORE)) {
-				core = true
-			} else if (!stack.isEmpty) {
-				// Only the dye matching THIS recipe's color may craft it. Without this
-				// check every dye matched all 16 recipes and the first one (alphabetical)
-				// won, so e.g. gray dye always produced a black companion.
-				val c = DYE_COLOR_BY_ITEM[stack.item]
-				if (c != null && dyeColor == null) dyeColor = c else return false
-			}
-		}
-		return core && dyeColor == color
-	}
+	override fun matches(input: CraftingInput, level: Level): Boolean =
+		coreAndDye(input) != null
 
 	override fun assemble(input: CraftingInput): ItemStack {
+		val color = coreAndDye(input) ?: return ItemStack.EMPTY
 		for (i in 0 until input.size()) {
 			val stack = input.getItem(i)
 			if (stack.`is`(ModItems.COMPANION_CORE)) {
@@ -70,6 +62,24 @@ class DyeGlassRecipe(
 		return ItemStack.EMPTY
 	}
 
+	/** The colour to apply, or null unless the grid holds exactly one core and one dye. */
+	private fun coreAndDye(input: CraftingInput): String? {
+		var core = false
+		var color: String? = null
+		for (i in 0 until input.size()) {
+			val stack = input.getItem(i)
+			if (stack.`is`(ModItems.COMPANION_CORE)) {
+				core = true
+			} else if (!stack.isEmpty) {
+				// Anything that is not exactly one dye (a second dye, a sponge, junk) fails.
+				val c = DYE_COLOR_BY_ITEM[stack.item]
+				if (c == null || color != null) return null
+				color = c
+			}
+		}
+		return if (core && color != null) color else null
+	}
+
 	override fun createPlacementInfo(): PlacementInfo =
 		PlacementInfo.create(listOf(
 			Ingredient.of(ModItems.COMPANION_CORE),
@@ -79,16 +89,23 @@ class DyeGlassRecipe(
 	/**
 	 * Feeds the vanilla recipe book. Empty is not enough: `RecipeManager` builds every
 	 * client-side book entry from `display()`, so an empty list hides the recipe entirely
-	 * even though `category` and `createPlacementInfo()` are set. `createPlacementInfo()`
-	 * covers crafting-grid placement, `display()` covers the book.
+	 * even though `category` and `createPlacementInfo()` are set.
+	 *
+	 * The result slot uses [SlotDisplay.DyedSlotDemo], the same live preview vanilla's
+	 * `DyeRecipe` uses. Our glass tint is driven by `custom_model_data` rather than the
+	 * vanilla dye component, so the demo currently previews the untinted core.
 	 */
-	override fun display(): List<RecipeDisplay> = listOf(
-		ShapelessCraftingRecipeDisplay(
-			listOf(Ingredient.of(ModItems.COMPANION_CORE).display(), DYE_INGREDIENT.display()),
-			SlotDisplay.ItemStackSlotDisplay(displayResult(color)),
-			SlotDisplay.ItemSlotDisplay(Items.CRAFTING_TABLE),
-		),
-	)
+	override fun display(): List<RecipeDisplay> {
+		val dye = DYE_INGREDIENT.display()
+		val core = Ingredient.of(ModItems.COMPANION_CORE).display()
+		return listOf(
+			ShapelessCraftingRecipeDisplay(
+				listOf(core, dye),
+				SlotDisplay.DyedSlotDemo(dye, core),
+				SlotDisplay.ItemSlotDisplay(Items.CRAFTING_TABLE),
+			),
+		)
+	}
 
 	override fun getSerializer(): RecipeSerializer<out DyeGlassRecipe> = SERIALIZER
 
@@ -106,7 +123,6 @@ class DyeGlassRecipe(
 			i.group(
 				Recipe.CommonInfo.MAP_CODEC.forGetter { it.commonInfo },
 				CraftingRecipe.CraftingBookInfo.MAP_CODEC.forGetter { it.bookInfo },
-				Codec.STRING.fieldOf("color").forGetter { it.color },
 			).apply(i, ::DyeGlassRecipe)
 		}
 
@@ -114,18 +130,10 @@ class DyeGlassRecipe(
 			StreamCodec.composite(
 				Recipe.CommonInfo.STREAM_CODEC, { it.commonInfo },
 				CraftingRecipe.CraftingBookInfo.STREAM_CODEC, { it.bookInfo },
-				ByteBufCodecs.STRING_UTF8, { it.color },
 				::DyeGlassRecipe
 			)
 
 		val SERIALIZER: RecipeSerializer<DyeGlassRecipe> = RecipeSerializer(CODEC, STREAM_CODEC)
-
-		/** Result shown in the book: a fresh core already tinted with this recipe's color. */
-		private fun displayResult(color: String): ItemStackTemplate {
-			val stack = ItemStack(ModItems.COMPANION_CORE)
-			ClearGlassRecipe.applyGlassColor(stack, color)
-			return ItemStackTemplate.fromNonEmptyStack(stack)
-		}
 
 		fun register() {
 			Registry.register(BuiltInRegistries.RECIPE_SERIALIZER, Ex3Companion.id("dye_glass"), SERIALIZER)
