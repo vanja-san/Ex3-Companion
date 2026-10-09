@@ -1,4 +1,5 @@
 {
     "type": "ex3-companion:dye_glass",
-    "category": "misc"
+    "category": "misc",
+    "group": "companion_core_tint"
 }

@@ -5,6 +5,7 @@ import mod.ex3.companion.registry.ModComponents
 import net.minecraft.core.component.DataComponents
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.ItemStackTemplate
 import net.minecraft.world.item.component.CustomData
 import net.minecraft.world.item.component.CustomModelData
 
@@ -41,5 +42,12 @@ object CoreGlassTint {
 		val stack = ItemStack(mod.ex3.companion.registry.ModItems.COMPANION_CORE)
 		apply(stack, CLEAR)
 		return stack
+	}
+
+	/** A fresh core in [color], as a template for the recipe book. */
+	fun previewTemplate(color: String): ItemStackTemplate {
+		val stack = ItemStack(mod.ex3.companion.registry.ModItems.COMPANION_CORE)
+		apply(stack, color)
+		return ItemStackTemplate.fromNonEmptyStack(stack)
 	}
 }
