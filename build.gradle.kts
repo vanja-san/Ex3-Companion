@@ -72,9 +72,9 @@ dependencies {
 	testRuntimeOnly(libs.junit.platform.launcher)
 
 	// Dev-only test mods: present in runClient, never compiled against, never bundled into the jar.
-	// JEI is currently DISABLED (no 26.3 build yet) — the 26.2 jar crashes the datagen/client launch
-	// on 26.3 (NoSuchFieldError: InputConstants.Type.KEYSYM). Re-enable once a 26.3 build exists.
-	// localRuntime(libs.jei)
+	// JEI 31.9.0.61 now has a 26.3 Fabric build (Modrinth id FoSbXUVi), which unblocks
+	// inspecting the companion core recipes in the dev client.
+	localRuntime(libs.jei)
 	localRuntime(libs.jade)
 	// Resource-pack manager, dev convenience only (client-side).
 	localRuntime(libs.resourcify)

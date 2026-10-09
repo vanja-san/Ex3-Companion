@@ -94,13 +94,15 @@ src/
 |------------|---------|------|
 | Minecraft | 26.3 | Required |
 | Fabric Loader | ≥ 0.19.5 | Required |
-| Fabric API | 0.160.5+26.3 | Required |
-| Fabric Language Kotlin | 1.14.1+kotlin.2.4.20 | Required |
+| Fabric API | 0.162.0+26.3 | Required |
+| Fabric Language Kotlin | 1.14.2+kotlin.2.4.21 | Required |
 | ConfigLibTXF (io.github.jahirxtrap) | 26.3-2.0.5-fabric | Required (bundled via `include`) |
 | Java | ≥ 25 | Required |
 | LambDynamicLights | 4.13.0+26.3 | Optional (for dynamic lighting) |
-| Mod Menu | 21.0.0-beta.1+26.3 | Optional (for config screen) |
-| Jade / Sodium / Iris / Resourcify | latest | Dev-only (`localRuntime`, never bundled) |
+| Mod Menu | 21.0.0+26.3 | Optional (for config screen) |
+| Jade / Sodium / Iris / Resourcify / JEI | latest | Dev-only (`localRuntime`, never bundled) |
 
-Versions live in `gradle.properties`. Required-mod versions are the minimum the mod is built
+All dependency versions live in `gradle/libs.versions.toml` (Gradle version catalog). Modrinth
+entries are pinned by version id, so bump them by looking the project up on Modrinth for the
+current game version and loader. Required-mod versions are the minimum the mod is built
 against; `fabric.mod.json` keeps broad `*` / range constraints so newer builds satisfy them.

@@ -68,11 +68,11 @@ Settings are edited in-game via **Mod Menu → Ex³ Companion** (server settings
 |------------|---------|------|
 | Minecraft | 26.3 | Required |
 | Fabric Loader | ≥ 0.19.5 | Required |
-| Fabric API | 0.160.5+26.3 | Required |
-| Fabric Language Kotlin | 1.14.1+kotlin.2.4.20 | Required |
+| Fabric API | 0.162.0+26.3 | Required |
+| Fabric Language Kotlin | 1.14.2+kotlin.2.4.21 | Required |
 | Java | ≥ 25 | Required |
 | LambDynamicLights | 4.13.0+26.3 | Optional |
-| Mod Menu | 21.0.0-beta.1+26.3 | Optional |
+| Mod Menu | 21.0.0+26.3 | Optional |
 
 ConfigLibTXF (via ConfigLib, bundled inside the mod JAR) powers the in-game settings screen, so it does **not** need to be installed separately.
 
