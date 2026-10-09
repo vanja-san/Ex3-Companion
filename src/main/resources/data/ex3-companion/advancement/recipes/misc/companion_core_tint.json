@@ -1,0 +1,41 @@
+{
+	"parent": "minecraft:recipes/root",
+	"criteria": {
+		"has_companion_core": {
+			"trigger": "minecraft:inventory_changed",
+			"conditions": {
+				"items": [
+					{
+						"items": "ex3-companion:companion_core"
+					}
+				]
+			}
+		}
+	},
+	"requirements": [
+		[
+			"has_companion_core"
+		]
+	],
+	"rewards": {
+		"recipes": [
+			"ex3-companion:clear_companion_core",
+			"ex3-companion:dye_companion_core_black",
+			"ex3-companion:dye_companion_core_blue",
+			"ex3-companion:dye_companion_core_brown",
+			"ex3-companion:dye_companion_core_cyan",
+			"ex3-companion:dye_companion_core_gray",
+			"ex3-companion:dye_companion_core_green",
+			"ex3-companion:dye_companion_core_light_blue",
+			"ex3-companion:dye_companion_core_light_gray",
+			"ex3-companion:dye_companion_core_lime",
+			"ex3-companion:dye_companion_core_magenta",
+			"ex3-companion:dye_companion_core_orange",
+			"ex3-companion:dye_companion_core_pink",
+			"ex3-companion:dye_companion_core_purple",
+			"ex3-companion:dye_companion_core_red",
+			"ex3-companion:dye_companion_core_white",
+			"ex3-companion:dye_companion_core_yellow"
+		]
+	}
+}
