@@ -35,6 +35,7 @@ object Ex3Companion : ModInitializer {
 		ModEntities.initialize()
 		mod.ex3.companion.recipe.ClearGlassRecipe.register()
 		mod.ex3.companion.recipe.DyeGlassRecipe.register()
+		mod.ex3.companion.recipe.DyedCoreDemoDisplay.register()
 
 		registerNetworking()
 		registerEvents()

@@ -91,9 +91,10 @@ class DyeGlassRecipe(
 	 * client-side book entry from `display()`, so an empty list hides the recipe entirely
 	 * even though `category` and `createPlacementInfo()` are set.
 	 *
-	 * The result slot uses [SlotDisplay.DyedSlotDemo], the same live preview vanilla's
-	 * `DyeRecipe` uses. Our glass tint is driven by `custom_model_data` rather than the
-	 * vanilla dye component, so the demo currently previews the untinted core.
+	 * The result slot uses [DyedCoreDemoDisplay], our port of vanilla's `DyedSlotDemo`.
+	 * Vanilla's own demo cannot work here: it tints by writing the vanilla dye colour
+	 * component, while our model selects its texture on `custom_model_data`, and
+	 * `dye_color` is not a model select property at all.
 	 */
 	override fun display(): List<RecipeDisplay> {
 		val dye = DYE_INGREDIENT.display()
@@ -101,7 +102,7 @@ class DyeGlassRecipe(
 		return listOf(
 			ShapelessCraftingRecipeDisplay(
 				listOf(core, dye),
-				SlotDisplay.DyedSlotDemo(dye, core),
+				DyedCoreDemoDisplay(dye, core),
 				SlotDisplay.ItemSlotDisplay(Items.CRAFTING_TABLE),
 			),
 		)
@@ -118,6 +119,9 @@ class DyeGlassRecipe(
 		private val DYE_COLOR_BY_ITEM: Map<Item, String> = DyeColor.entries.associate { dyeColor ->
 			Items.DYE.pick(dyeColor) to dyeColor.serializedName
 		}
+
+		/** Colour name of the dye in [stack], or null if it holds no dye. */
+		fun colorOf(stack: ItemStack): String? = DYE_COLOR_BY_ITEM[stack.item]
 
 		val CODEC: MapCodec<DyeGlassRecipe> = RecordCodecBuilder.mapCodec { i ->
 			i.group(
