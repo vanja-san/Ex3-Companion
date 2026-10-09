@@ -4,6 +4,9 @@ import dev.lambdaurora.lambdynlights.api.entity.luminance.EntityLuminance
 import dev.lambdaurora.lambdynlights.api.item.ItemLightSourceManager
 import net.minecraft.resources.Identifier
 import net.minecraft.world.entity.Entity
+import java.util.Collections
+import java.util.LinkedHashMap
+import java.util.UUID
 import kotlin.math.abs
 
 /**
@@ -15,11 +18,26 @@ import kotlin.math.abs
  *
  * Smooth transition: accumulates a float and lerps toward the target
  * every render frame (~50 Hz), producing a gradual fade with no visible steps.
+ *
+ * The fade state is **per entity**, not per provider. LambDynamicLights registers one
+ * provider instance and calls [getLuminance] once per rendered entity, so a single
+ * shared accumulator made every visible companion lerp against the others' values —
+ * two companions next to each other made the brightness ping-pong and flicker. State is
+ * held in a bounded LRU so players who log out cannot leak entries.
  */
 class CompanionEntityLuminance private constructor() : EntityLuminance {
 
-	private var smoothLuminance: Double = 0.0
-	private var displayedLuminance: Int = 0
+	/** Mutable per-entity fade state. */
+	private class Smooth {
+		var luminance: Double = 0.0
+		var displayed: Int = 0
+	}
+
+	private val states: MutableMap<UUID, Smooth> =
+		Collections.synchronizedMap(object : LinkedHashMap<UUID, Smooth>(16, 0.75f, true) {
+			override fun removeEldestEntry(eldest: MutableMap.MutableEntry<UUID, Smooth>): Boolean =
+				size > MAX_TRACKED
+		})
 
 	override fun type(): EntityLuminance.Type = COMPANION_LUMINANCE_TYPE
 
@@ -35,22 +53,20 @@ class CompanionEntityLuminance private constructor() : EntityLuminance {
 
 		val target = if (effectiveBrightness < CAVE_THRESHOLD) MAX_LUMINANCE else 0
 
+		val state = states.getOrPut(entity.uuid) { Smooth() }
+
 		// Float lerp — runs every render frame, giving ~50 updates/sec.
-		val alpha = FADE_SPEED
-		smoothLuminance += (target - smoothLuminance) * alpha
+		state.luminance += (target - state.luminance) * FADE_SPEED
 
 		// Snap when close enough to avoid endless micro-dithering.
-		val snapped = if (abs(smoothLuminance - target) < 0.5) {
-			smoothLuminance = target.toDouble()
+		state.displayed = if (abs(state.luminance - target) < 0.5) {
+			state.luminance = target.toDouble()
 			target
 		} else {
-			smoothLuminance.toInt()
+			state.luminance.toInt()
 		}
 
-		if (snapped != displayedLuminance) {
-			displayedLuminance = snapped
-		}
-		return displayedLuminance
+		return state.displayed
 	}
 
 	companion object {
@@ -69,6 +85,9 @@ class CompanionEntityLuminance private constructor() : EntityLuminance {
 		 * Produces a visible but smooth fade — not instant, not sluggish.
 		 */
 		private const val FADE_SPEED = 0.15
+
+		/** Upper bound on tracked companions (LRU eviction) — far above any realistic count. */
+		private const val MAX_TRACKED = 16
 
 		/** Registered type, set during initialization. */
 		lateinit var COMPANION_LUMINANCE_TYPE: EntityLuminance.Type

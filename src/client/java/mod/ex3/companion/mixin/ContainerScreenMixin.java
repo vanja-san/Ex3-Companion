@@ -30,6 +30,9 @@ public abstract class ContainerScreenMixin {
 	private void ex3$renderCompanionSlotBackground(
 		GuiGraphicsExtractor graphics, Slot slot, int mouseX, int mouseY, CallbackInfo ci
 	) {
+		// `isActive` mirrors vanilla's own guard in extractSlot: an inactive slot
+		// (menu still rebuilding, tab being swapped) must not draw its background.
+		if (!slot.isActive()) return;
 		if (slot.container instanceof CoreSlotBackingContainer && !slot.getItem().isEmpty()) {
 			graphics.blitSprite(
 				RenderPipelines.GUI_TEXTURED, EX3_SLOT_SPRITE,

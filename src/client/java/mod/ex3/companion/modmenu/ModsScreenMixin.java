@@ -38,7 +38,10 @@ public abstract class ModsScreenMixin {
 				this.configureButton.visible = true;
 				this.configureButton.active = true;
 			} else {
+				// Clear `active` too — leaving a hidden button "active" keeps stale
+				// interactive state on it.
 				this.configureButton.visible = false;
+				this.configureButton.active = false;
 			}
 		}
 	}

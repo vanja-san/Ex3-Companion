@@ -83,7 +83,14 @@ class ClearGlassRecipe(
 
 		val SERIALIZER: RecipeSerializer<ClearGlassRecipe> = RecipeSerializer(CODEC, STREAM_CODEC)
 
-		/** Writes the glass tint into every source the game reads: the mod component, the item model select and the vanilla custom_data tag. */
+		/**
+		 * Writes the glass tint into every source the game reads: the mod component, the
+		 * item model select and the vanilla custom_data tag.
+		 *
+		 * The existing `custom_data` NBT is merged into rather than replaced, so a
+		 * `companion` key written by another tool (or a future field of ours) survives
+		 * re-tinting instead of being silently dropped.
+		 */
 		fun applyGlassColor(stack: ItemStack, color: String) {
 			val data = stack.getOrDefault(ModComponents.COMPANION_DATA, CompanionData.DEFAULT)
 			stack.set(ModComponents.COMPANION_DATA, data.withGlassColor(color))
@@ -93,11 +100,12 @@ class ClearGlassRecipe(
 					emptyList(), emptyList(), listOf(color), emptyList()
 				)
 			)
-			val companionTag = net.minecraft.nbt.CompoundTag().also { it.putString("glassColor", color) }
-			val tag = net.minecraft.nbt.CompoundTag().also { it.put("companion", companionTag) }
+			val existing = stack.get(net.minecraft.core.component.DataComponents.CUSTOM_DATA)?.copyTag()
+				?: net.minecraft.nbt.CompoundTag()
+			existing.put("companion", net.minecraft.nbt.CompoundTag().also { it.putString("glassColor", color) })
 			stack.set(
 				net.minecraft.core.component.DataComponents.CUSTOM_DATA,
-				net.minecraft.world.item.component.CustomData.of(tag)
+				net.minecraft.world.item.component.CustomData.of(existing)
 			)
 		}
 

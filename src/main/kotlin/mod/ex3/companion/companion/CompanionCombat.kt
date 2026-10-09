@@ -30,8 +30,28 @@ class CompanionCombat(private val e: CompanionEntity) {
 	/** Countdown to next re-target evaluation. */
 	private var retargetTimer: Int = 0
 
+	/**
+	 * Countdown to the next hostile-mob scan while not engaged.
+	 *
+	 * [tryStartCombat] runs on every tick of the FOLLOW and EXPLORE states, and each call
+	 * performs an AABB entity query (up to `combatSearchRadius * 2` in Aggressive mode, i.e.
+	 * a 256-cube) plus a `clip()` raycast per candidate. Scanning every tick made that cost
+	 * scale with `companions × nearby_mobs`, which is the dominant server cost on a busy
+	 * server. Throttling to [TARGET_SCAN_INTERVAL_TICKS] cuts it by the same factor while
+	 * leaving engagement latency at half a second — imperceptible next to the companion's
+	 * own travel time. Once combat is established, [tick] and the existing re-target timer
+	 * are unaffected, so an ongoing fight is never slowed down.
+	 */
+	private var targetScanCooldown: Int = 0
+
 	/** Enters ATTACK when a hostile mob is near the owner. Returns true if combat started. */
 	fun tryStartCombat(owner: Player): Boolean {
+		if (targetScanCooldown > 0) {
+			targetScanCooldown--
+			return false
+		}
+		targetScanCooldown = TARGET_SCAN_INTERVAL_TICKS
+
 		val target = findTarget(owner) ?: return false
 		combatTarget = target
 		// Keep the existing attackCooldown instead of resetting it to 0. Slimes split
@@ -53,7 +73,6 @@ class CompanionCombat(private val e: CompanionEntity) {
 	 */
 	fun tick(owner: Player, currentMoodPulse: Float): CombatTickResult {
 		val target = combatTarget
-		val abortDistSq = CompanionConfig.exploreAbortDistance * CompanionConfig.exploreAbortDistance
 
 		val deadOrGone = target == null || !target.isAlive || target.isRemoved
 		val tooFar = target != null && e.distanceToSqr(target) > CompanionConfig.combatAbortDistance * CompanionConfig.combatAbortDistance
@@ -108,7 +127,7 @@ class CompanionCombat(private val e: CompanionEntity) {
 				combatTarget = better
 				staleTargetTicks = 0
 				lastTargetHealth = better.health
-				// Don't reset attackCooldown — keep firing on the normal rhythm.ackCooldown — keep firing on the normal rhythm.
+				// Don't reset attackCooldown — keep firing on the normal rhythm.
 			}
 		}
 
@@ -338,6 +357,10 @@ class CompanionCombat(private val e: CompanionEntity) {
 
 	fun stopCombat() {
 		combatTarget = null
+		// Re-arm the scan immediately: after an explicit disengage (target died, owner
+		// walked away) the companion must be able to pick up a new threat on the very
+		// next tick instead of idling out the remainder of the throttle window.
+		targetScanCooldown = 0
 	}
 
 	companion object {
@@ -348,6 +371,11 @@ class CompanionCombat(private val e: CompanionEntity) {
 		private const val CATCH_UP_DISTANCE_SQ = 9.0
 		/** Ticks between periodic re-target evaluations. */
 		private const val RETARGET_INTERVAL = 40
+		/**
+		 * Ticks between hostile-mob scans while not engaged (see [targetScanCooldown]).
+		 * 10 ticks = 0.5 s; engagement still feels immediate.
+		 */
+		private const val TARGET_SCAN_INTERVAL_TICKS = 10
 		// Strategic mode scoring bonuses
 		private const val STRATEGIC_ATTACKING_BONUS = 50.0
 		private const val STRATEGIC_CREEPER_PENALTY = 80.0

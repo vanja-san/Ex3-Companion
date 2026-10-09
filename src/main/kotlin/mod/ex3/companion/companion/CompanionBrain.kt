@@ -211,7 +211,19 @@ class CompanionBrain(private val e: CompanionEntity, private val combat: Compani
 			val explored = memory.isChunkExplored(pos)
 			val distSq = pos.distSqr(center)
 			// Unexplored chunks get a bonus (lower score = better), explored get a penalty.
-			val score = distSq * if (explored) EXPLORED_CHUNK_PENALTY else 1.0
+			var score = distSq * if (explored) EXPLORED_CHUNK_PENALTY else 1.0
+
+			// Use what the companion learned about where ores hide: if it has already
+			// seen this ore type, strongly favour candidates at the remembered Y.
+			// Without this the recorded ore preferences were written and never read.
+			if (block in ORE_BLOCKS) {
+				val knownY = memory.preferredYForOre(block.descriptionId)
+				if (knownY != null) {
+					val yError = kotlin.math.abs(pos.y - knownY)
+					score *= (1.0 + (yError / 16.0))
+				}
+			}
+
 			scored.add(hoverPoint to score)
 		}
 
@@ -379,5 +391,13 @@ class CompanionBrain(private val e: CompanionEntity, private val combat: Compani
 			Blocks.SHROOMLIGHT, Blocks.GLOWSTONE,
 			Blocks.ANCIENT_DEBRIS,
 		)
+
+		/**
+		 * Ores whose Y level the companion remembers. `recordOreY` is keyed by
+		 * `Block.descriptionId`, so exploration can bias towards the depth where this
+		 * companion has actually found that ore before.
+		 */
+		private val ORE_BLOCKS: Set<net.minecraft.world.level.block.Block> =
+			INTERESTING_BLOCKS.filterTo(mutableSetOf()) { it.descriptionId.contains("ore") }
 	}
 }

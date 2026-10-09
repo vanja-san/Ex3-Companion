@@ -13,10 +13,8 @@ import net.minecraft.world.level.block.DoorBlock
 import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
 import kotlin.math.abs
-import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.sin
 import kotlin.math.sqrt
 
 /**
@@ -31,15 +29,16 @@ class CompanionFlight(private val e: CompanionEntity) {
 	// --- Stuck detection state ---
 	private var prevDistToTarget: Double = Double.MAX_VALUE
 	private var recoveryWaypoint: Vec3? = null
-	private var failedDirections = mutableSetOf<Int>()
+	private val failedDirections = mutableSetOf<Int>()
 	private var doorScanCooldown: Int = 0
 	private var doorOpenCooldown: Int = 0
 
 	/** Ticks the companion has been fully stuck with no escape. */
-	var hardStuckTicks: Int = 0
-		/** Ticks of no progress toward the current flight target. */
-		var stuckTicks: Int = 0
-			private set
+	private var hardStuckTicks: Int = 0
+
+	/** Ticks of no progress toward the current flight target. */
+	var stuckTicks: Int = 0
+		private set
 
 	/** Resets all stuck state (called when a new target is set or after teleport). */
 	fun resetStuck() {
@@ -47,6 +46,12 @@ class CompanionFlight(private val e: CompanionEntity) {
 		hardStuckTicks = 0
 		recoveryWaypoint = null
 		failedDirections.clear()
+		// prevDistToTarget must be reset too: leaving the previous goal's distance in
+		// place made the first tick of the new goal compare against a stale value and
+		// count as "no progress" (or as progress, when the new goal is further away).
+		prevDistToTarget = Double.MAX_VALUE
+		doorScanCooldown = 0
+		doorOpenCooldown = 0
 	}
 
 	/**
@@ -75,6 +80,16 @@ class CompanionFlight(private val e: CompanionEntity) {
 				failedDirections.clear()
 				recoveryWaypoint = null
 			}
+		} else {
+			// Arrived: clear stuck state here too. Previously only the "made progress"
+			// branch reset it, so a companion that reached its goal while
+			// `stuckTicks >= STUCK_THRESHOLD` kept a stale recoveryWaypoint alive and the
+			// next tick overrode the fresh goal with that waypoint — dragging it away from
+			// where the brain just asked it to go.
+			stuckTicks = 0
+			hardStuckTicks = 0
+			failedDirections.clear()
+			recoveryWaypoint = null
 		}
 		prevDistToTarget = distToTarget
 
@@ -167,22 +182,38 @@ class CompanionFlight(private val e: CompanionEntity) {
 		}
 
 		val h = sqrt((dm.x * dm.x) + (dm.z * dm.z))
-		if (h > e.speedLimit) dm = Vec3((dm.x / h) * e.speedLimit, dm.y, (dm.z / h) * e.speedLimit)
-		dm = Vec3(dm.x, dm.y.coerceIn(-CompanionConfig.movementMaxVertical, CompanionConfig.movementMaxVertical), dm.z)
+		// Guard the normalization: with speedLimit <= 0 the `h > speedLimit` test is
+		// always true and h == 0 would evaluate 0/0 -> NaN straight into the position.
+		if (e.speedLimit > 0.0 && h > e.speedLimit) dm = Vec3((dm.x / h) * e.speedLimit, dm.y, (dm.z / h) * e.speedLimit)
+		// abs() keeps the range well-formed even if the config value were ever negative,
+		// since coerceIn throws when the bound is below the lower one.
+		val maxVertical = abs(CompanionConfig.movementMaxVertical)
+		dm = Vec3(dm.x, dm.y.coerceIn(-maxVertical, maxVertical), dm.z)
 
 		e.deltaMovement = dm
 		e.move(net.minecraft.world.entity.MoverType.SELF, dm)
 	}
 
-	/** Safety spring: bounce away from floor or ceiling after collision. */
+	/** Safety spring: bounce away from the floor or the ceiling after a collision.
+	 *
+	 * Uses vanilla's [Entity.verticalCollisionBelow], which `move()` computes as
+	 * `verticalCollision && delta.y < 0.0` from the movement vector *before* restitution
+	 * rewrites `deltaMovement.y`. Testing `deltaMovement.y` directly cannot work here:
+	 * restitution multiplies the vertical component by the BOUNCINESS attribute (0.0 by
+	 * default), so after any vertical collision that value is always 0.0 — the old
+	 * `dm.y <= 0.0` test therefore matched every collision, the ceiling branch was dead
+	 * code, and each ceiling hit re-injected upward velocity, pinning the companion there.
+	 */
 	fun postFlightCollisions() {
+		if (!e.verticalCollision) return
 		val dm = e.deltaMovement
-		if (e.verticalCollision && dm.y <= 0.0) {
+		val bounce = min(BOUNCE_UP_SPEED, abs(CompanionConfig.movementMaxVertical))
+		e.deltaMovement = if (e.verticalCollisionBelow) {
 			// Hit floor: bounce up.
-			e.deltaMovement = Vec3(dm.x, BOUNCE_UP_SPEED, dm.z)
-		} else if (e.verticalCollision && dm.y >= 0.0) {
+			Vec3(dm.x, bounce, dm.z)
+		} else {
 			// Hit ceiling: push down.
-			e.deltaMovement = Vec3(dm.x, -BOUNCE_UP_SPEED, dm.z)
+			Vec3(dm.x, -bounce, dm.z)
 		}
 	}
 

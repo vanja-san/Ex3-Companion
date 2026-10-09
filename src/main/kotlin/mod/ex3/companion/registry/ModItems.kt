@@ -4,7 +4,6 @@ import mod.ex3.companion.Ex3Companion
 import mod.ex3.companion.item.CompanionCoreItem
 import net.fabricmc.fabric.api.creativetab.v1.FabricCreativeModeTab
 import net.minecraft.core.Registry
-import net.minecraft.core.component.DataComponents
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.network.chat.Component
@@ -20,9 +19,11 @@ object ModItems {
 	val COMPANION_CORE: Item = register(
 		COMPANION_CORE_KEY,
 		::CompanionCoreItem,
-		Item.Properties().stacksTo(1).fireResistant()
-			.component(DataComponents.MAX_DAMAGE, 100)
-			.component(DataComponents.DAMAGE, 0),
+		// No MAX_DAMAGE/DAMAGE: the core is not a durability item. Giving it one made
+		// `isDamageableItem()` true, which opened vanilla's anvil repair/combine branches
+		// and let the core be consumed as a repair material — an unintended item surface
+		// this mod never wanted.
+		Item.Properties().stacksTo(1).fireResistant(),
 	)
 
 	private val CREATIVE_TAB_KEY: ResourceKey<CreativeModeTab> =

@@ -26,7 +26,7 @@ class CompanionHealth(private val e: CompanionEntity) {
 	/** Regenerates health each tick if below max. */
 	fun regenerate() {
 		if (e.health < e.maxHealth) {
-			val scale = 1f + (e.readLevel() - 1) * CompanionConfig.healthRegenLevelScale
+			val scale = (1f + (e.readLevel() - 1) * CompanionConfig.healthRegenLevelScale).coerceAtLeast(0f)
 			e.setCompanionHealth((e.health + CompanionConfig.healthRegenPerTick * scale).coerceAtMost(e.maxHealth))
 		}
 	}
@@ -46,7 +46,8 @@ class CompanionHealth(private val e: CompanionEntity) {
 		val rangeSq = CompanionConfig.healingRange * CompanionConfig.healingRange
 		if (distSq > rangeSq) return
 
-		val healPerTick = (CompanionConfig.healingBasePerTick + ((lvl - CompanionConfig.healingUnlockLevel) * CompanionConfig.healingPerLevelAbove)).coerceAtMost(CompanionConfig.healingMaxPerTick)
+		val healPerTick = (CompanionConfig.healingBasePerTick + ((lvl - CompanionConfig.healingUnlockLevel) * CompanionConfig.healingPerLevelAbove))
+			.coerceIn(0f, CompanionConfig.healingMaxPerTick)
 		val newHealth = (owner.health + healPerTick).coerceAtMost(owner.maxHealth)
 		if (newHealth > owner.health) {
 			owner.health = newHealth

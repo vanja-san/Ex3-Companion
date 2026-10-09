@@ -48,6 +48,12 @@ class CompanionRenderer(context: EntityRendererProvider.Context) :
 		Blocks.STAINED_GLASS.pick(color).defaultBlockState()
 	}.toTypedArray()
 
+	/** Reused per frame — `BlockDisplayContext.create()` and `Matrix4f()` were allocating
+	 *  once per rendered companion per frame, which is pure garbage every frame. */
+	private val displayContext: BlockDisplayContext = BlockDisplayContext.create()
+	private val spinMatrix = org.joml.Matrix4f()
+	private val coreMatrix = org.joml.Matrix4f()
+
 	init {
 		shadowRadius = 0.3f // small shadow under the floating cube
 	}
@@ -61,7 +67,7 @@ class CompanionRenderer(context: EntityRendererProvider.Context) :
 	) {
 		super.extractRenderState(entity, state, partialTick)
 
-		val displayContext = BlockDisplayContext.create()
+		val displayContext = this.displayContext
 		// Unknown or invalid names (including the special "clear") resolve to clear glass.
 		val colorIdx = CompanionEntity.glassColorIndex(entity.glassColorName)
 		val glassBlock = if (colorIdx in glassByDye.indices) glassByDye[colorIdx] else Blocks.GLASS.defaultBlockState()
@@ -97,7 +103,8 @@ class CompanionRenderer(context: EntityRendererProvider.Context) :
 		// --- Outer glass cube (full-bright: the whole companion glows) ---
 		poseStack.pushPose()
 		poseStack.translate(0.0f, CUBE_CENTER_Y + state.bobOffset, 0.0f)
-		poseStack.mulPose(org.joml.Matrix4f().rotate(Axis.YP.rotationDegrees(state.spinDegrees)))
+		spinMatrix.identity().rotate(Axis.YP.rotationDegrees(state.spinDegrees))
+		poseStack.mulPose(spinMatrix)
 		poseStack.scale(GLASS_SCALE, GLASS_SCALE, GLASS_SCALE)
 		poseStack.translate(-0.5f, -0.5f, -0.5f)
 		state.glassBlock.submit(poseStack, collector, LAMP_GLOW_LIGHT, OverlayTexture.NO_OVERLAY, state.outlineColor)
@@ -106,7 +113,8 @@ class CompanionRenderer(context: EntityRendererProvider.Context) :
 		// --- Inner emerald core (counter-rotating, pulsing, full-bright) ---
 		poseStack.pushPose()
 		poseStack.translate(0.0f, CUBE_CENTER_Y + state.bobOffset, 0.0f)
-		poseStack.mulPose(org.joml.Matrix4f().rotate(Axis.YP.rotationDegrees(-state.spinDegrees * CORE_COUNTER_SPIN)))
+		coreMatrix.identity().rotate(Axis.YP.rotationDegrees(-state.spinDegrees * CORE_COUNTER_SPIN))
+		poseStack.mulPose(coreMatrix)
 		poseStack.scale(state.coreScale, state.coreScale, state.coreScale)
 		poseStack.translate(-0.5f, -0.5f, -0.5f)
 		state.lampBlock.submit(poseStack, collector, LAMP_GLOW_LIGHT, OverlayTexture.NO_OVERLAY, state.outlineColor)
