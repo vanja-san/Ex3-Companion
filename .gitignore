@@ -46,3 +46,6 @@ replay_*.log
 AGENTS.md
 net/
 .kotlin/
+
+# Test/bootstrap log output (Log4j writes here when JVM tests bootstrap the game)
+logs/

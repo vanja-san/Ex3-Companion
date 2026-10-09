@@ -65,6 +65,12 @@ dependencies {
 	implementation(libs.configlibtxf)
 	include(libs.configlibtxf)
 
+	// Unit tests: pure-JVM, covering the codec/clamp arithmetic that guards
+	// server-authoritative state (no game bootstrap required).
+	testImplementation(platform(libs.junit.bom))
+	testImplementation(libs.junit.jupiter)
+	testRuntimeOnly(libs.junit.platform.launcher)
+
 	// Dev-only test mods: present in runClient, never compiled against, never bundled into the jar.
 	// JEI is currently DISABLED (no 26.3 build yet) — the 26.2 jar crashes the datagen/client launch
 	// on 26.3 (NoSuchFieldError: InputConstants.Type.KEYSYM). Re-enable once a 26.3 build exists.
@@ -135,6 +141,13 @@ eclipse {
 kotlin {
 	compilerOptions {
 		jvmTarget = JvmTarget.JVM_25
+	}
+}
+
+tasks.test {
+	useJUnitPlatform()
+	testLogging {
+		events("passed", "skipped", "failed")
 	}
 }
 
