@@ -14,6 +14,7 @@ import net.minecraft.world.item.DyeColor
 import net.minecraft.world.item.DyeItem
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.ItemStackTemplate
 import net.minecraft.world.item.Items
 import net.minecraft.world.item.crafting.CraftingBookCategory
 import net.minecraft.world.item.crafting.CraftingInput
@@ -24,6 +25,8 @@ import net.minecraft.world.item.crafting.PlacementInfo
 import net.minecraft.world.item.crafting.Recipe
 import net.minecraft.world.item.crafting.RecipeSerializer
 import net.minecraft.world.item.crafting.display.RecipeDisplay
+import net.minecraft.world.item.crafting.display.ShapelessCraftingRecipeDisplay
+import net.minecraft.world.item.crafting.display.SlotDisplay
 import net.minecraft.world.level.Level
 
 /**
@@ -73,7 +76,19 @@ class DyeGlassRecipe(
 			DYE_INGREDIENT,
 		))
 
-	override fun display(): List<RecipeDisplay> = listOf()
+	/**
+	 * Feeds the vanilla recipe book. Empty is not enough: `RecipeManager` builds every
+	 * client-side book entry from `display()`, so an empty list hides the recipe entirely
+	 * even though `category` and `createPlacementInfo()` are set. `createPlacementInfo()`
+	 * covers crafting-grid placement, `display()` covers the book.
+	 */
+	override fun display(): List<RecipeDisplay> = listOf(
+		ShapelessCraftingRecipeDisplay(
+			listOf(Ingredient.of(ModItems.COMPANION_CORE).display(), DYE_INGREDIENT.display()),
+			SlotDisplay.ItemStackSlotDisplay(displayResult(color)),
+			SlotDisplay.ItemSlotDisplay(Items.CRAFTING_TABLE),
+		),
+	)
 
 	override fun getSerializer(): RecipeSerializer<out DyeGlassRecipe> = SERIALIZER
 
@@ -104,6 +119,13 @@ class DyeGlassRecipe(
 			)
 
 		val SERIALIZER: RecipeSerializer<DyeGlassRecipe> = RecipeSerializer(CODEC, STREAM_CODEC)
+
+		/** Result shown in the book: a fresh core already tinted with this recipe's color. */
+		private fun displayResult(color: String): ItemStackTemplate {
+			val stack = ItemStack(ModItems.COMPANION_CORE)
+			ClearGlassRecipe.applyGlassColor(stack, color)
+			return ItemStackTemplate.fromNonEmptyStack(stack)
+		}
 
 		fun register() {
 			Registry.register(BuiltInRegistries.RECIPE_SERIALIZER, Ex3Companion.id("dye_glass"), SERIALIZER)

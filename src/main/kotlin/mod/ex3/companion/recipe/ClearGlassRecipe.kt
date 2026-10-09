@@ -11,6 +11,7 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.codec.StreamCodec
 import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.ItemStackTemplate
 import net.minecraft.world.item.Items
 import net.minecraft.world.item.crafting.CraftingBookCategory
 import net.minecraft.world.item.crafting.CraftingInput
@@ -21,6 +22,8 @@ import net.minecraft.world.item.crafting.PlacementInfo
 import net.minecraft.world.item.crafting.Recipe
 import net.minecraft.world.item.crafting.RecipeSerializer
 import net.minecraft.world.item.crafting.display.RecipeDisplay
+import net.minecraft.world.item.crafting.display.ShapelessCraftingRecipeDisplay
+import net.minecraft.world.item.crafting.display.SlotDisplay
 import net.minecraft.world.level.Level
 
 /**
@@ -62,7 +65,19 @@ class ClearGlassRecipe(
 			Ingredient.of(Items.SPONGE),
 		))
 
-	override fun display(): List<RecipeDisplay> = listOf()
+	/**
+	 * Feeds the vanilla recipe book. Empty is not enough: `RecipeManager` builds every
+	 * client-side book entry from `display()`, so an empty list hides the recipe entirely
+	 * even though `category` and `createPlacementInfo()` are set. `createPlacementInfo()`
+	 * covers crafting-grid placement, `display()` covers the book.
+	 */
+	override fun display(): List<RecipeDisplay> = listOf(
+		ShapelessCraftingRecipeDisplay(
+			INGREDIENT_DISPLAYS,
+			SlotDisplay.ItemStackSlotDisplay(displayResult()),
+			SlotDisplay.ItemSlotDisplay(Items.CRAFTING_TABLE),
+		),
+	)
 
 	override fun getSerializer(): RecipeSerializer<out ClearGlassRecipe> = SERIALIZER
 
@@ -82,6 +97,22 @@ class ClearGlassRecipe(
 			)
 
 		val SERIALIZER: RecipeSerializer<ClearGlassRecipe> = RecipeSerializer(CODEC, STREAM_CODEC)
+
+		/** Slot displays for the recipe book, shared with [createPlacementInfo]. */
+		private val INGREDIENT_DISPLAYS: List<SlotDisplay> = listOf(
+			Ingredient.of(ModItems.COMPANION_CORE).display(),
+			Ingredient.of(Items.SPONGE).display(),
+		)
+
+		/**
+		 * Result shown in the book: a fresh core with the tint already reset, so the entry
+		 * matches what crafting actually produces.
+		 */
+		private fun displayResult(): ItemStackTemplate {
+			val stack = ItemStack(ModItems.COMPANION_CORE)
+			applyGlassColor(stack, "clear")
+			return ItemStackTemplate.fromNonEmptyStack(stack)
+		}
 
 		/**
 		 * Writes the glass tint into every source the game reads: the mod component, the
