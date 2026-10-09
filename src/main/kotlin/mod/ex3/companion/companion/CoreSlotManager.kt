@@ -76,6 +76,21 @@ object CoreSlotManager {
 		return map[player.uuid]
 	}
 
+	/**
+	 * Drops all client-side caches. Called from the client disconnect hook: the
+	 * disconnect handler in [onPlayerLeave] is server-side and returns early on a
+	 * client, so without this the client maps would keep one entry per UUID the player
+	 * has ever connected with.
+	 */
+	@JvmStatic
+	fun clearClientCaches() {
+		clientContainers.clear()
+		companionSlots.clear()
+		lastSyncedHealth.clear()
+		lastMemoryHash.clear()
+		companionCache.clear()
+	}
+
 	/** Records the companion-core slot after it is injected into the inventory menu. */
 	@JvmStatic
 	fun setCompanionSlot(player: Player, slot: CompanionCoreSlot) {
@@ -125,13 +140,20 @@ object CoreSlotManager {
 
 		val existing = findCompanion(player)
 		if (existing != null) {
+			// A live companion is the source of truth for its current health — it pushes
+			// health to the core every tick (syncHealthToCore). Never copy health back
+			// from the core here: this path is reachable from an unthrottled client
+			// nudge, so doing so would let a client top the companion up by spamming
+			// packets. Core health is only applied on spawn / revive (below).
 			existing.syncMaxHealth(data.level)
-			existing.health = data.health
 			existing.glassColorName = data.glassColor
 			// Keep the entity name in sync with the (possibly renamed) core item.
-			existing.setCustomName(stack.get(DataComponents.CUSTOM_NAME))
-			// Keep the entity id fresh on the core item (also persists colour sources).
-			writeData(player, stack, data.withId(existing.uuid))
+			existing.customName = stack.get(DataComponents.CUSTOM_NAME)
+			// Persist the entity id only when it actually drifted, so a repeated nudge
+			// with unchanged state costs no NBT write.
+			if (data.companionId != existing.uuid) {
+				writeData(player, stack, data.withId(existing.uuid))
+			}
 			return
 		}
 
@@ -445,12 +467,58 @@ object CoreSlotManager {
 	}
 
 	/**
-	 * Sets the companion slot content and runs lifecycle logic.
-	 * Used by the creative-mode sync packet handler.
+	 * Applies a client-reported slot state. This is the only entry point where a client
+	 * influences server state, so it mirrors vanilla's own policy for
+	 * `ServerboundSetCreativeModeSlotPacket` (`ServerGamePacketListenerImpl.handleSetCreativeModeSlot`):
+	 * accepted only from players with infinite materials, with the stack normalised to a
+	 * single core.
+	 *
+	 * Gating on creative mode is what makes this safe. In survival, clicks reach the server
+	 * through normal container packets and already fire `Slot.setChanged()`, so nothing
+	 * needs to be accepted here — an item-injection path would exist for no benefit. In
+	 * creative, players can already create arbitrary items by design, so accepting the
+	 * stack costs nothing.
+	 *
+	 * Vanilla has no equivalent packet for an *inventory-menu* slot (the creative screen
+	 * applies those clicks locally), which is why this path exists at all.
 	 */
 	@JvmStatic
-	fun setAndNotify(player: Player, stack: ItemStack) {
-		getOrCreateContainer(player).setItem(0, stack.copy())
+	fun applyClientSlotSync(player: Player, stack: ItemStack) {
+		if (player.level().isClientSide) return
+		if (!player.hasInfiniteMaterials()) return
+
+		val sanitized = sanitizeSlotStack(stack)
+		val container = getOrCreateContainer(player)
+		if (ItemStack.matches(container.getItem(0), sanitized)) return
+
+		suppressed.add(player.uuid)
+		try {
+			// Only ever a core or nothing: strip anything else a client may have sent.
+			container.setItem(0, sanitized)
+		} finally {
+			suppressed.remove(player.uuid)
+		}
+		onSlotChanged(player)
+	}
+
+	/**
+	 * Reduces a client-supplied stack to either a single companion core or empty.
+	 * Anything else becomes empty rather than being written to the slot.
+	 */
+	private fun sanitizeSlotStack(stack: ItemStack): ItemStack {
+		if (!stack.`is`(ModItems.COMPANION_CORE)) return ItemStack.EMPTY
+		val copy = stack.copy()
+		copy.count = 1
+		return copy
+	}
+
+	/**
+	 * Re-reads the authoritative server-side slot and reconciles the companion with it.
+	 * Used by the per-tick pass and by ordinary (non-creative) slot changes.
+	 */
+	@JvmStatic
+	fun reconcileSlot(player: Player) {
+		if (player.level().isClientSide) return
 		onSlotChanged(player)
 	}
 
@@ -557,15 +625,11 @@ object CoreSlotManager {
 	private fun writeData(player: Player, stack: ItemStack, data: CompanionData) {
 		stack[ModComponents.COMPANION_DATA] = data
 		ClearGlassRecipe.applyGlassColor(stack, data.glassColor)
-		// Mark the backing container dirty so vanilla broadcastChanges() detects the
-		// component mutation and sends a slot update to the client. Without this the
-		// health bar stays stale because SimpleContainer only tracks setItem() calls.
-		val container = getOrCreateContainer(player)
-		suppressed.add(player.uuid)
-		try {
-			container.setChanged()
-		} finally {
-			suppressed.remove(player.uuid)
-		}
+		// No container.setChanged() dance needed: AbstractContainerMenu.broadcastChanges()
+		// runs every tick and compares every slot with RemoteSlot.matches(), which
+		// compares item *and* components — so mutating the stack is picked up and sent
+		// automatically. It used to be marked dirty here with a `suppressed` guard,
+		// which was both unnecessary (broadcast does the work) and risky (any slip in
+		// the suppress bookkeeping would fire the slot-change lifecycle mid-write).
 	}
 }

@@ -1,7 +1,7 @@
 package mod.ex3.companion.mixin;
 
 import mod.ex3.companion.companion.CoreSlotBackingContainer;
-import mod.ex3.companion.network.CompanionSlotPayload;
+import mod.ex3.companion.network.CompanionSlotSyncPayload;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.world.inventory.ContainerInput;
@@ -17,14 +17,18 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * Positions the companion core slot correctly in the creative inventory
- * and syncs slot changes to the server via a custom packet.
- * Vanilla's {@code selectTab} wraps every slot from the player's inventoryMenu
- * into a SlotWrapper with auto-calculated positions. The companion slot (index 46)
- * falls into the default branch and ends up off-screen.
- * Creative-mode inventory clicks don't reliably trigger server-side
- * {@code Container.setChanged()} for custom slots, so we send an
- * explicit sync packet after each click — but only when the content
- * actually changed, to avoid overwriting the server state on login.
+ * and nudges the server after slot changes.
+ *
+ * Vanilla's {@code selectTab} rebuilds the INVENTORY tab from the player's
+ * inventoryMenu, wrapping every slot in a {@code SlotWrapper} and computing positions
+ * from the slot index. The companion slot (index 46) falls into the final {@code else}
+ * branch, where {@code i >= 36} forces {@code y = 112} — which lands the slot on the
+ * hotbar row (x=27, y=112), overlapping a real hotbar slot. It is moved out of the way
+ * here.
+ *
+ * {@code SlotWrapper} passes {@code target.container} to its {@code Slot} super
+ * constructor, so the companion slot is still identified by
+ * {@code slot.container instanceof CoreSlotBackingContainer} after wrapping.
  */
 @Mixin(CreativeModeInventoryScreen.class)
 public abstract class CreativeInventoryScreenMixin {
@@ -58,11 +62,17 @@ public abstract class CreativeInventoryScreenMixin {
 		}
 	}
 
-	/**
-	 * After vanilla processes a click on any slot, check if the companion slot
-	 * changed and sync the new state to the server — but only if it actually
-	 * differs from what we last sent, to avoid a login-race overwrite.
-	 */
+/**
+	 * Reports companion-slot changes to the server after a creative click.
+	 *
+	 * Vanilla's {@code slotClicked} applies inventory-tab clicks locally and never sends a
+	 * packet, so the server's copy of the slot would otherwise stay stale. The companion
+	 * slot is an inventory-menu slot, for which vanilla has no equivalent of
+ * {@code ServerboundSetCreativeModeSlotPacket}.
+ *
+ * Only sent when the content actually differs from what we last sent, to avoid a
+ * login-race overwrite.
+ */
 	@Inject(method = "slotClicked", at = @At("RETURN"))
 	private void ex3$syncCompanionSlot(
 		Slot slot, int slotId, int buttonNum, ContainerInput clickType, CallbackInfo ci
@@ -75,8 +85,8 @@ public abstract class CreativeInventoryScreenMixin {
 				ItemStack current = s.getItem();
 				if (!ItemStack.matches(current, ex3$lastSentCore)) {
 					ex3$lastSentCore = current.copy();
-					if (ClientPlayNetworking.canSend(CompanionSlotPayload.TYPE)) {
-						ClientPlayNetworking.send(new CompanionSlotPayload(current.copy()));
+					if (ClientPlayNetworking.canSend(CompanionSlotSyncPayload.TYPE)) {
+						ClientPlayNetworking.send(new CompanionSlotSyncPayload(current.copy()));
 					}
 				}
 				return;

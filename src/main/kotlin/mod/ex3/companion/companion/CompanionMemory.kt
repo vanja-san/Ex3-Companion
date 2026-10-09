@@ -43,7 +43,7 @@ data class CompanionMemory(
 		}
 	}
 
-	/** Returns the preferred Y level for [oreName], or null if never seen. */
+	/** Returns the remembered Y level for [oreName], or null if never seen. */
 	fun preferredYForOre(oreName: String): Int? = oreYPreferences[oreName]
 
 	/** Clears exploration data (e.g. when companion respawns in a new dimension). */
@@ -56,12 +56,26 @@ data class CompanionMemory(
 		private const val MAX_EXPLORED_CHUNKS = 1024
 		private const val MAX_ORE_PREFERENCES = 50
 
-		val EMPTY = CompanionMemory()
+		/**
+		 * A fresh, empty memory.
+		 *
+		 * This used to be a shared `val EMPTY = CompanionMemory()`, which was a landmine:
+		 * the type is mutable, so any future write through the codec default (or through
+		 * [CompanionData.memory]'s default) would have mutated one global instance for
+		 * every player on the server. Handing out a new instance makes that impossible.
+		 */
+		fun empty(): CompanionMemory = CompanionMemory()
 
 		/** Packs a block position into a chunk key (section coords). */
 		private fun packChunk(pos: BlockPos): Long =
-			(pos.x shr 4).toLong() and 0x3FFFFFFL or ((pos.z shr 4).toLong() and 0x3FFFFFFL shl 26)
+			((pos.x shr 4).toLong() and 0x3FFFFFFL) or (((pos.z shr 4).toLong() and 0x3FFFFFFL) shl 26)
 
+		/**
+		 * Persistence codec. The list/map decoders are unbounded, so trimming happens
+		 * here after decode; since only this mod ever writes the field (and no
+		 * client-to-server item path exists), the encoded size is already capped at
+		 * write time by [markExplored] / [recordOreY].
+		 */
 		val CODEC: Codec<CompanionMemory> = RecordCodecBuilder.create { instance ->
 			instance.group(
 				Codec.LONG.listOf().optionalFieldOf("explored_chunks", emptyList())

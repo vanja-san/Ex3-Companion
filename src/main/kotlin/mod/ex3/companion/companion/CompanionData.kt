@@ -24,7 +24,7 @@ data class CompanionData(
 	val xp: Int,
 	val level: Int,
 	val reviveAt: Long = 0L, // server game time (ticks) before the companion may respawn
-	val memory: CompanionMemory = CompanionMemory.EMPTY,
+	val memory: CompanionMemory = CompanionMemory.empty(),
 	val glassColor: String = "clear", // "clear" = transparent glass, or dye color name
 ) : TooltipProvider {
 
@@ -83,22 +83,42 @@ data class CompanionData(
 
 		val DEFAULT: CompanionData get() = CompanionData(null, CompanionConfig.healthBase, 0, 1, 0L)
 
-		/** XP required to advance from [level] to [level] + 1. Grows quadratically so late levels are harder. */
-		fun xpToNextLevel(level: Int): Int = level * level * CompanionConfig.xpFormulaMultiplier
+		/**
+		 * Canonical level clamp.
+		 *
+		 * `level` is persisted in item NBT and therefore fully attacker-controlled: a
+		 * crafted core item (or a client-forged data component) can carry any Int. Every
+		 * derived stat multiplies by it, so an unclamped value produced two classes of
+		 * bug: negative `maxHealth` made `health.coerceIn(MIN_HEALTH, maxHealth)` throw
+		 * `IllegalArgumentException` from the server tick, and `level * level` overflowed
+		 * Int past 46340. Sanitising once here keeps every consumer safe by construction.
+		 */
+		fun sanitizeLevel(level: Int): Int = level.coerceIn(1, CompanionConfig.xpLevelCap)
 
-		/** Maximum health a companion of the given level can have. */
+		/** XP required to advance from [level] to [level] + 1. Grows quadratically so late levels are harder. */
+		fun xpToNextLevel(level: Int): Int {
+			val safe = sanitizeLevel(level)
+			return (safe * safe * CompanionConfig.xpFormulaMultiplier).coerceAtLeast(1)
+		}
+
+		/**
+		 * Maximum health a companion of the given level can have.
+		 * Always >= 1 so callers can safely `coerceIn(MIN_HEALTH, maxHealth(...))`.
+		 */
 		fun maxHealth(level: Int): Float {
-			val base = CompanionConfig.healthBase + (level - 1) * CompanionConfig.healthPerLevel
-			return base.coerceAtMost(CompanionConfig.healthCap)
+			val base = CompanionConfig.healthBase + (sanitizeLevel(level) - 1) * CompanionConfig.healthPerLevel
+			return base.coerceIn(1f, CompanionConfig.healthCap)
 		}
 
 		/** Attack interval in ticks for the given level. */
 		fun attackIntervalTicks(level: Int): Int =
-			(CompanionConfig.combatIntervalBase - ((level - 1) * CompanionConfig.combatIntervalPerLevel)).coerceAtLeast(CompanionConfig.combatIntervalMin)
+			(CompanionConfig.combatIntervalBase - ((sanitizeLevel(level) - 1) * CompanionConfig.combatIntervalPerLevel))
+				.coerceIn(CompanionConfig.combatIntervalMin, CompanionConfig.combatIntervalBase)
 
 		/** Attack damage for the given level. */
 		fun damage(level: Int): Float =
-			(CompanionConfig.combatDamageBase + ((level - 1) * CompanionConfig.combatDamagePerLevel)).coerceAtMost(CompanionConfig.combatDamageCap)
+			(CompanionConfig.combatDamageBase + ((sanitizeLevel(level) - 1) * CompanionConfig.combatDamagePerLevel))
+				.coerceIn(0f, CompanionConfig.combatDamageCap)
 
 		private fun parseId(raw: String): UUID? =
 			if (raw.isEmpty()) null else runCatching { UUID.fromString(raw) }.getOrNull()
@@ -116,13 +136,26 @@ data class CompanionData(
 				Codec.INT.optionalFieldOf("xp", 0).forGetter(CompanionData::xp),
 				Codec.INT.optionalFieldOf("level", 1).forGetter(CompanionData::level),
 				Codec.LONG.optionalFieldOf("revive_at", 0L).forGetter(CompanionData::reviveAt),
-				CompanionMemory.CODEC.optionalFieldOf("memory", CompanionMemory.EMPTY).forGetter(CompanionData::memory),
+				CompanionMemory.CODEC.optionalFieldOf("memory", CompanionMemory.empty()).forGetter(CompanionData::memory),
 				Codec.STRING.optionalFieldOf("glass_color", "clear").forGetter(CompanionData::glassColor),
 			).apply(instance) { id: String, health: Float, xp: Int, level: Int, reviveAt: Long, memory: CompanionMemory, glassColor: String ->
-				CompanionData(parseId(id), health, xp, level, reviveAt, memory, glassColor)
+				CompanionData(parseId(id), health, xp, sanitizeLevel(level), reviveAt, memory, glassColor)
 			}
 		}
 
+		/**
+		 * Client-visible projection of the persistent component.
+		 *
+		 * [memory] is intentionally NOT part of this stream. Exploration memory is
+		 * server-authoritative bookkeeping that the client never reads, and shipping it
+		 * here would re-send up to ~8 KB on every component change (health ticks mutate it
+		 * constantly). Decoding therefore yields an empty memory on the client.
+		 *
+		 * This is safe only because no client-to-server item path exists: the server
+		 * never decodes this codec, so the empty default can never overwrite real server
+		 * state. Persistence goes through [CODEC] via player save data. If a C2S item
+		 * payload is ever reintroduced, it must never carry this component.
+		 */
 		val STREAM_CODEC: StreamCodec<io.netty.buffer.ByteBuf, CompanionData> = StreamCodec.composite(
 			ByteBufCodecs.STRING_UTF8,
 			CompanionData::idString,
@@ -137,7 +170,7 @@ data class CompanionData(
 			ByteBufCodecs.STRING_UTF8,
 			CompanionData::glassColor,
 		) { id: String, health: Float, xp: Int, level: Int, reviveAt: Long, glassColor: String ->
-			CompanionData(parseId(id), health, xp, level, reviveAt, CompanionMemory.EMPTY, glassColor)
+			CompanionData(parseId(id), health, xp, sanitizeLevel(level), reviveAt, CompanionMemory.empty(), glassColor)
 		}
 	}
 }

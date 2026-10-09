@@ -4,7 +4,7 @@ import com.jahirtrap.configlib.TXFConfig
 import mod.ex3.companion.command.CompanionCommand
 import mod.ex3.companion.companion.CoreSlotManager
 import mod.ex3.companion.config.CompanionConfig
-import mod.ex3.companion.network.CompanionSlotPayload
+import mod.ex3.companion.network.CompanionSlotSyncPayload
 import mod.ex3.companion.registry.ModComponents
 import mod.ex3.companion.registry.ModEntities
 import mod.ex3.companion.registry.ModItems
@@ -17,7 +17,6 @@ import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.minecraft.resources.Identifier
-import net.minecraft.world.item.ItemStack
 import org.slf4j.LoggerFactory
 
 object Ex3Companion : ModInitializer {
@@ -45,21 +44,17 @@ object Ex3Companion : ModInitializer {
 	}
 
 	private fun registerNetworking() {
-		PayloadTypeRegistry.serverboundPlay().register(CompanionSlotPayload.TYPE, CompanionSlotPayload.CODEC)
+		PayloadTypeRegistry.serverboundPlay().register(CompanionSlotSyncPayload.TYPE, CompanionSlotSyncPayload.CODEC)
 
-		ServerPlayNetworking.registerGlobalReceiver(CompanionSlotPayload.TYPE) { payload, context ->
-			val player = context.player()
-			val stack = payload.stack
-			context.server().execute {
-				val container = CoreSlotManager.getOrCreateContainer(player)
-				val current = container.getItem(0)
-
-				if (stack.`is`(ModItems.COMPANION_CORE)) {
-					CoreSlotManager.setAndNotify(player, stack)
-				} else if (current.`is`(ModItems.COMPANION_CORE)) {
-					CoreSlotManager.setAndNotify(player, ItemStack.EMPTY)
-				}
-			}
+		// Creative-mode clicks on the companion slot never reach the server (vanilla
+		// applies them client-side only), so the client reports the resulting stack.
+		// applyClientSlotSync() accepts it ONLY from creative players and normalises it,
+		// mirroring vanilla's ServerboundSetCreativeModeSlotPacket policy.
+		//
+		// No extra server.execute() hop: Fabric's ServerPlayNetworkAddon.receive() already
+		// dispatches every play payload onto the server thread.
+		ServerPlayNetworking.registerGlobalReceiver(CompanionSlotSyncPayload.TYPE) { payload, context ->
+			CoreSlotManager.applyClientSlotSync(context.player(), payload.stack)
 		}
 	}
 
