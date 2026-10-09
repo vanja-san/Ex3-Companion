@@ -28,15 +28,22 @@ import net.minecraft.world.item.crafting.display.RecipeDisplay
 import net.minecraft.world.item.crafting.display.ShapelessCraftingRecipeDisplay
 import net.minecraft.world.item.crafting.display.SlotDisplay
 import net.minecraft.world.level.Level
+import java.util.stream.Stream
 
 /**
- * Crafting recipe: companion_core + any dye -> the same core tinted in that dye's colour.
+ * Crafting recipe: companion_core + any dye -> the core tinted in that dye's colour, and
+ * companion_core + sponge -> the core untinted.
  *
- * One recipe covers all 16 colours, mirroring vanilla's [net.minecraft.world.item.crafting.DyeRecipe]:
- * the colour is derived from the dye actually placed in the grid rather than baked into the
- * recipe. This mod previously shipped one recipe per colour, which made every entry in the
- * recipe book identical (names come from the result item) and needed an exact-colour match
- * in [matches] purely to stop the wrong dye from matching every recipe.
+ * One recipe covers every retint, which is what the recipe book can actually represent.
+ * The colour comes from the dye in the grid, mirroring vanilla's
+ * [net.minecraft.world.item.crafting.DyeRecipe], rather than being baked into the recipe.
+ *
+ * This mod previously shipped 16 recipes (one per colour) plus a separate sponge recipe.
+ * Beyond making every book entry look identical - names come from the result item - that
+ * layout fought the book: grouping several recipes into one button is what enables the
+ * right-click variants popup, but it also halves the preview cycle, because
+ * `RecipeButton.getDisplayStack()` advances a given recipe only every
+ * `30 ticks * selectedEntries.size()`. A single entry cycles at the vanilla rate.
  *
  * Preserves every companion component (health, XP, level, memory); a vanilla shapeless
  * recipe would create a fresh item via result.create() and silently drop all of them.
@@ -47,23 +54,26 @@ class DyeGlassRecipe(
 ) : NormalCraftingRecipe(commonInfo, bookInfo) {
 
 	override fun matches(input: CraftingInput, level: Level): Boolean =
-		coreAndDye(input) != null
+		tintFor(input) != null
 
 	override fun assemble(input: CraftingInput): ItemStack {
-		val color = coreAndDye(input) ?: return ItemStack.EMPTY
+		val color = tintFor(input) ?: return ItemStack.EMPTY
 		for (i in 0 until input.size()) {
 			val stack = input.getItem(i)
 			if (stack.`is`(ModItems.COMPANION_CORE)) {
 				val result = stack.copy()
-				ClearGlassRecipe.applyGlassColor(result, color)
+				CoreGlassTint.apply(result, color)
 				return result
 			}
 		}
 		return ItemStack.EMPTY
 	}
 
-	/** The colour to apply, or null unless the grid holds exactly one core and one dye. */
-	private fun coreAndDye(input: CraftingInput): String? {
+	/**
+	 * The colour this grid produces, or null unless it holds exactly one core plus exactly
+	 * one tinting item (a dye of any colour, or a sponge to go back to clear glass).
+	 */
+	private fun tintFor(input: CraftingInput): String? {
 		var core = false
 		var color: String? = null
 		for (i in 0 until input.size()) {
@@ -71,10 +81,12 @@ class DyeGlassRecipe(
 			if (stack.`is`(ModItems.COMPANION_CORE)) {
 				core = true
 			} else if (!stack.isEmpty) {
-				// Anything that is not exactly one dye (a second dye, a sponge, junk) fails.
-				val c = DYE_COLOR_BY_ITEM[stack.item]
-				if (c == null || color != null) return null
-				color = c
+				// Two tinting items, or something that is neither a dye nor a sponge: reject.
+				if (color != null) return null
+				color = when {
+					stack.`is`(Items.SPONGE) -> CoreGlassTint.CLEAR
+					else -> COLOR_BY_ITEM[stack.item] ?: return null
+				}
 			}
 		}
 		return if (core && color != null) color else null
@@ -83,7 +95,8 @@ class DyeGlassRecipe(
 	override fun createPlacementInfo(): PlacementInfo =
 		PlacementInfo.create(listOf(
 			Ingredient.of(ModItems.COMPANION_CORE),
-			DYE_INGREDIENT,
+			// Any dye, or a sponge to go back to clear glass.
+			Ingredient.of(Stream.concat(TINT_ITEMS.stream(), Stream.of(Items.SPONGE))),
 		))
 
 	/**
@@ -115,13 +128,18 @@ class DyeGlassRecipe(
 			BuiltInRegistries.ITEM.filter { it is DyeItem }.stream()
 		)
 
+		/** Every dye item, used to build the "any dye or sponge" placement ingredient. */
+		private val TINT_ITEMS: List<Item> = BuiltInRegistries.ITEM
+			.filter { it is DyeItem }
+			.toList()
+
 		/** Maps each dye item to its color name (e.g. gray_dye -> "gray"). */
-		private val DYE_COLOR_BY_ITEM: Map<Item, String> = DyeColor.entries.associate { dyeColor ->
+		private val COLOR_BY_ITEM: Map<Item, String> = DyeColor.entries.associate { dyeColor ->
 			Items.DYE.pick(dyeColor) to dyeColor.serializedName
 		}
 
 		/** Colour name of the dye in [stack], or null if it holds no dye. */
-		fun colorOf(stack: ItemStack): String? = DYE_COLOR_BY_ITEM[stack.item]
+		fun colorOf(stack: ItemStack): String? = COLOR_BY_ITEM[stack.item]
 
 		val CODEC: MapCodec<DyeGlassRecipe> = RecordCodecBuilder.mapCodec { i ->
 			i.group(

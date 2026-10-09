@@ -65,7 +65,7 @@ class DyedCoreDemoDisplay(
 
 	private fun tinted(target: ItemStack, color: String): ItemStack {
 		val copy = target.copy()
-		ClearGlassRecipe.applyGlassColor(copy, color)
+		CoreGlassTint.apply(copy, color)
 		return copy
 	}
 

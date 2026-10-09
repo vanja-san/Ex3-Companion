@@ -1,7 +1,7 @@
 package mod.ex3.companion.companion
 
 import mod.ex3.companion.config.CompanionConfig
-import mod.ex3.companion.recipe.ClearGlassRecipe
+import mod.ex3.companion.recipe.CoreGlassTint
 import mod.ex3.companion.registry.ModComponents
 import mod.ex3.companion.registry.ModEntities
 import mod.ex3.companion.registry.ModItems
@@ -624,7 +624,7 @@ object CoreSlotManager {
 
 	private fun writeData(player: Player, stack: ItemStack, data: CompanionData) {
 		stack[ModComponents.COMPANION_DATA] = data
-		ClearGlassRecipe.applyGlassColor(stack, data.glassColor)
+		CoreGlassTint.apply(stack, data.glassColor)
 		// No container.setChanged() dance needed: AbstractContainerMenu.broadcastChanges()
 		// runs every tick and compares every slot with RemoteSlot.matches(), which
 		// compares item *and* components — so mutating the stack is picked up and sent
