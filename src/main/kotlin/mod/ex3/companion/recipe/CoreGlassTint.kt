@@ -5,7 +5,6 @@ import mod.ex3.companion.registry.ModComponents
 import net.minecraft.core.component.DataComponents
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.item.ItemStack
-import net.minecraft.world.item.ItemStackTemplate
 import net.minecraft.world.item.component.CustomData
 import net.minecraft.world.item.component.CustomModelData
 
@@ -35,19 +34,5 @@ object CoreGlassTint {
 		val existing = stack.get(DataComponents.CUSTOM_DATA)?.copyTag() ?: CompoundTag()
 		existing.put("companion", CompoundTag().also { it.putString("glassColor", color) })
 		stack.set(DataComponents.CUSTOM_DATA, CustomData.of(existing))
-	}
-
-	/** A fresh, untinted core, used as the base for recipe-book previews. */
-	fun freshCore(): ItemStack {
-		val stack = ItemStack(mod.ex3.companion.registry.ModItems.COMPANION_CORE)
-		apply(stack, CLEAR)
-		return stack
-	}
-
-	/** A fresh core in [color], as a template for the recipe book. */
-	fun previewTemplate(color: String): ItemStackTemplate {
-		val stack = ItemStack(mod.ex3.companion.registry.ModItems.COMPANION_CORE)
-		apply(stack, color)
-		return ItemStackTemplate.fromNonEmptyStack(stack)
 	}
 }

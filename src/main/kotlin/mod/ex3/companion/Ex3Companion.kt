@@ -25,7 +25,7 @@ object Ex3Companion : ModInitializer {
 	private val LOGGER = LoggerFactory.getLogger(MOD_ID)
 
 	override fun onInitialize() {
-		// Register the TXFConfig gameplay config first — it reads/writes
+		// Register the TXFConfig gameplay config first вЂ” it reads/writes
 		// config/ex3-companion.json5 and other systems reference its static fields.
 		TXFConfig.init(MOD_ID, CompanionConfig::class.java)
 
@@ -33,9 +33,6 @@ object Ex3Companion : ModInitializer {
 		ModComponents.initialize()
 		ModItems.initialize()
 		ModEntities.initialize()
-		mod.ex3.companion.recipe.DyeGlassRecipe.register()
-		mod.ex3.companion.recipe.ClearGlassRecipe.register()
-		mod.ex3.companion.recipe.DyedCoreDemoDisplay.register()
 
 		registerNetworking()
 		registerEvents()

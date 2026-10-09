@@ -1,0 +1,28 @@
+{
+	"type": "minecraft:crafting_shapeless",
+	"category": "misc",
+	"group": "companion_core_tint",
+	"ingredients": [
+		"ex3-companion:companion_core",
+		"minecraft:brown_dye"
+	],
+	"result": {
+		"id": "ex3-companion:companion_core",
+		"count": 1,
+		"components": {
+			"minecraft:custom_model_data": {
+				"strings": [
+					"brown"
+				]
+			},
+			"minecraft:custom_data": {
+				"companion": {
+					"glassColor": "brown"
+				}
+			},
+			"ex3-companion:companion_data": {
+				"glass_color": "brown"
+			}
+		}
+	}
+}
