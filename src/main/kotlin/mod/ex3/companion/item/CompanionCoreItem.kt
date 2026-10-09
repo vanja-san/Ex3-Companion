@@ -21,8 +21,6 @@ import net.minecraft.world.level.Level
  */
 class CompanionCoreItem(properties: Properties) : Item(properties) {
 
-	override fun isFoil(stack: ItemStack): Boolean = true
-
 	override fun isBarVisible(stack: ItemStack): Boolean {
 		val data = stack.getOrDefault(ModComponents.COMPANION_DATA, CompanionData.DEFAULT)
 		val max = CompanionData.maxHealth(data.level).coerceAtLeast(1f)

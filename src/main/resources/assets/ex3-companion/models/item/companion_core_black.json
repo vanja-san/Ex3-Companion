@@ -1,7 +1,7 @@
 ﻿{
     "parent": "minecraft:item/generated",
     "textures": {
-        "layer0": "ex3-companion:item/companion_core_black"
+        "layer0": "ex3-companion:item/core_black"
     },
     "display": {
         "ground": { "scale": [0.7, 0.7, 0.7] },
