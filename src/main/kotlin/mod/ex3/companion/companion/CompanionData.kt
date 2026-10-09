@@ -34,6 +34,7 @@ data class CompanionData(
 		flag: TooltipFlag,
 		components: DataComponentGetter,
 	) {
+		if (CompanionTooltip.isHidden()) return
 		tooltip.accept(Component.translatable("ex3companion.tooltip.health", health.toInt()).withStyle(ChatFormatting.GREEN))
 		val xpRemaining = (xpToNextLevel(level) - xp).coerceAtLeast(0)
 		// Level in blue, XP in gray — separate components so each keeps its own color.

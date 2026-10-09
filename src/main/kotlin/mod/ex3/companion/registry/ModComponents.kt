@@ -2,8 +2,10 @@ package mod.ex3.companion.registry
 
 import mod.ex3.companion.Ex3Companion
 import mod.ex3.companion.companion.CompanionData
+import net.fabricmc.fabric.api.item.v1.ItemComponentTooltipProviderRegistry
 import net.minecraft.core.Registry
 import net.minecraft.core.component.DataComponentType
+import net.minecraft.core.component.DataComponents
 import net.minecraft.core.registries.BuiltInRegistries
 
 object ModComponents {
@@ -29,12 +31,10 @@ object ModComponents {
 			.build(),
 	)
 
-	fun initialize() {
+fun initialize() {
 		// Static initialization happens on field access.
-		//
-		// The core deliberately registers no ItemComponentTooltipProvider: the recipe book
-		// renders this item as the result of 17 grouped recipes, and a stats block there
-		// would sit next to the vanilla "More Recipes" hint instead of the item name.
-		// Companion stats are surfaced by the health bar and the /companion command.
+		// Show the companion core's stats in the item tooltip via the data component.
+		// CompanionTooltip suppresses them while a recipe book screen is open.
+		ItemComponentTooltipProviderRegistry.addAfter(DataComponents.DAMAGE, COMPANION_DATA)
 	}
 }
