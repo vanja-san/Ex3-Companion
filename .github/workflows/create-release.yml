@@ -147,6 +147,17 @@ jobs:
             echo
           } >> "$notes_file"
 
+          # GitHub renders the release body as Markdown and silently drops anything
+          # that parses as an HTML tag, so a subject like "core_<colour>" published
+          # as "core_" with the angle-bracketed part gone. Backticks mark the text as
+          # literal, so the renderer leaves it alone.
+          literalize() {
+            case "$1" in
+              *'<'*|*'>'*) printf '`%s`' "$1" ;;
+              *)           printf '%s' "$1" ;;
+            esac
+          }
+
           # Commits follow conventional-commit prefixes, so they can be grouped without
           # anyone maintaining a changelog by hand. The prefix is dropped on the way out,
           # because the section title already says what the group is.
@@ -158,7 +169,7 @@ jobs:
             while IFS= read -r subject; do
               [ -n "$subject" ] || continue
               clean="$(printf '%s' "$subject" | sed -E 's/^[a-z]+(\([^)]*\))?:[[:space:]]*//')"
-              echo "- ${clean}" >> "$notes_file"
+              echo "- $(literalize "$clean")" >> "$notes_file"
             done <<< "$matched"
             echo >> "$notes_file"
           }
@@ -178,7 +189,7 @@ jobs:
             echo "Other changes" >> "$notes_file"
             while IFS= read -r subject; do
               [ -n "$subject" ] || continue
-              echo "- ${subject}" >> "$notes_file"
+              echo "- $(literalize "$subject")" >> "$notes_file"
             done <<< "$other"
             echo >> "$notes_file"
           fi
