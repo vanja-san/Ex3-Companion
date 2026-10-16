@@ -1,0 +1,114 @@
+# Build the mod jar and publish it as a GitHub release.
+#
+# Manual only, on purpose: a release tags a commit, and that should never
+# happen because somebody pushed to a branch. Run it from the Actions tab once
+# the commit you want to ship is on the branch.
+#
+# The tag defaults to the version in gradle.properties, so the release tag and
+# the artifact can never drift apart the way a hand-typed tag does.
+
+name: create-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag. Leave empty to use v<version from gradle.properties>."
+        required: false
+        type: string
+      prerelease:
+        description: "Mark the release as a prerelease."
+        required: false
+        default: false
+        type: boolean
+
+# A release rewrites tags, so two runs at once would race each other.
+concurrency:
+  group: create-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v7
+
+      - name: validate gradle wrapper
+        uses: gradle/actions/wrapper-validation@v6
+
+      - name: setup jdk
+        uses: actions/setup-java@v6
+        with:
+          java-version: '25'
+          distribution: 'microsoft'
+
+      - name: make gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: build
+        run: ./gradlew build
+
+      - name: resolve version and release tag
+        id: release
+        env:
+          # Passed through the environment rather than interpolated into the script,
+          # so a hand-typed tag can never be read as shell.
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/^version=//p' gradle.properties)"
+          if [ -z "$version" ]; then
+            echo "::error::no version= line in gradle.properties"
+            exit 1
+          fi
+
+          tag="${INPUT_TAG:-v${version}}"
+
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+
+      - name: verify the jar matches the version
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          jar="build/libs/Ex3Companion-v${VERSION}-mc26.3-Fabric.jar"
+
+          if [ ! -f "$jar" ]; then
+            echo "::error::expected ${jar}, found instead:"
+            ls -1 build/libs/ || true
+            exit 1
+          fi
+
+          # The jar's own metadata is the authority, not the file name.
+          actual="$(unzip -p "$jar" fabric.mod.json | sed -n 's/.*"version":"\([^"]*\)".*/\1/p')"
+          if [ "$actual" != "$VERSION" ]; then
+            echo "::error::fabric.mod.json in the jar says ${actual}, gradle.properties says ${VERSION}"
+            exit 1
+          fi
+
+          echo "verified ${jar}"
+
+      - name: publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.release.outputs.tag }}
+          VERSION: ${{ steps.release.outputs.version }}
+          PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          set -euo pipefail
+
+          args=()
+          if [ "$PRERELEASE" = "true" ]; then
+            args+=(--prerelease)
+          fi
+
+          gh release create "$TAG" \
+            "build/libs/Ex3Companion-v${VERSION}-mc26.3-Fabric.jar" \
+            --title "$TAG" \
+            --generate-notes \
+            "${args[@]}"
