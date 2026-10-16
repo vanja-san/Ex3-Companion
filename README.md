@@ -9,10 +9,10 @@
 
 *A loyal floating companion for Minecraft: Java Edition — craft its core, slot it in, and it follows you on your adventures.*
 
-[![Version](https://img.shields.io/badge/Version-1.4.2-181717)](https://github.com/vanja-san/Ex3Companion)
+[![Version](https://img.shields.io/badge/Version-1.4.3-181717)](https://github.com/vanja-san/Ex3Companion)
 [![Minecraft](https://img.shields.io/badge/Minecraft-26.3-red)](#)
 [![Mod Loader](https://img.shields.io/badge/Mod%20Loader-Fabric-blue)](https://fabricmc.net)
-[![License](https://img.shields.io/badge/License-CC0--1.0-brightgreen)](LICENSE)
+[![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
 </div>
 
@@ -50,9 +50,6 @@ Settings are edited in-game via **Mod Menu → Ex³ Companion** (server settings
 
 - Gameplay tuning is stored in `config/ex3-companion.json5` and synced from the server to every connected player. Its values are server-authoritative: while on a dedicated server they are read-only in-game (edit the file server-side to tune gameplay), and the settings button is only shown to operators. Settings are grouped under section headers (Health, Combat, Healing, Movement, Exploration, Leveling).
 
-> **Note:** this release changes the config storage/layout from nested JSON to flat JSON5, so existing
-> values reset to defaults once. Re-tune your settings after updating.
-
 | Group | Key settings |
 |-------|--------------|
 | Health | base, per-level growth, cap, regen, revive delay, invulnerable |
@@ -70,7 +67,6 @@ Settings are edited in-game via **Mod Menu → Ex³ Companion** (server settings
 | Fabric Loader | ≥ 0.19.5 | Required |
 | Fabric API | 0.162.0+26.3 | Required |
 | Fabric Language Kotlin | 1.14.2+kotlin.2.4.21 | Required |
-| Java | ≥ 25 | Required |
 | LambDynamicLights | 4.13.0+26.3 | Optional |
 | Mod Menu | 21.0.0+26.3 | Optional |
 
@@ -79,18 +75,6 @@ ConfigLibTXF (via ConfigLib, bundled inside the mod JAR) powers the in-game sett
 ## Installation
 
 1. Install [Fabric Loader](https://fabricmc.net/use/installer/) for Minecraft 26.3.
-2. Copy `Ex3Companion-v1.4.2-mc26.3-Fabric.jar` into `mods/` (on your server **and** every client to see it on multiplayer).
+2. Copy `Ex3Companion-v1.4.3-mc26.3-Fabric.jar` into `mods/` (on your server **and** every client to see it on multiplayer).
 3. Add the required dependencies from the table above to the same `mods/` folder.
 4. Launch the game.
-
-## Building & Development
-
-See [DEVELOPMENT.md](DEVELOPMENT.md).
-
-## License
-
-[CC0 1.0 Universal](LICENSE) — public domain.
-
-## Author
-
-vanja-san — [GitHub](https://github.com/vanja-san)

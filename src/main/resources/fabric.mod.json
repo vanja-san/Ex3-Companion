@@ -9,7 +9,7 @@
 		"homepage": "https://github.com/vanja-san/Ex3Companion",
 		"sources": "https://github.com/vanja-san/Ex3Companion"
 	},
-	"license": "CC0-1.0",
+	"license": "MIT",
 	"icon": "assets/ex3-companion/icon.png",
 	"environment": "*",
 	"entrypoints": {
