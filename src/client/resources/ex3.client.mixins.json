@@ -6,7 +6,8 @@
 		"ConfigScreenMixin",
 		"ContainerScreenMixin",
 		"CreativeInventoryScreenMixin",
-		"SlotAccessor"
+		"SlotAccessor",
+		"RecipeButtonMixin"
 	],
 	"overwrites": {
 		"requireAnnotations": true

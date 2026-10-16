@@ -18,6 +18,7 @@ object CompanionTooltip {
 	/** True while a screen that embeds the recipe book is the open one. */
 	fun isHidden(): Boolean = hidden
 
+	@JvmStatic
 	fun setHidden(value: Boolean) {
 		hidden = value
 	}
