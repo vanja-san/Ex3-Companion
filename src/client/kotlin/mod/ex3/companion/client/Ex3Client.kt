@@ -10,13 +10,13 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.minecraft.client.Minecraft
-import net.minecraft.client.gui.screens.inventory.AbstractRecipeBookScreen
+import net.minecraft.world.inventory.RecipeBookType
 import net.minecraft.client.renderer.entity.EntityRenderers
 import net.minecraft.world.item.ItemStack
 
 object Ex3Client : ClientModInitializer {
 
-	/** Last slot state reported to the server вЂ” avoids sending on every tick. */
+	/** Last slot state reported to the server Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљ avoids sending on every tick. */
 	private var lastSentSlot: ItemStack? = null
 
 	override fun onInitializeClient() {
@@ -47,7 +47,13 @@ object Ex3Client : ClientModInitializer {
 	 * `AbstractRecipeBookScreen`, so one check covers them all.
 	 */
 	private fun updateTooltipVisibility(client: Minecraft) {
-		CompanionTooltip.setHidden(client.gui.screen() is AbstractRecipeBookScreen<*>)
+		// Screen type alone is not enough: crafting, inventory and furnace screens all
+		// extend AbstractRecipeBookScreen permanently, and the companion slot lives in the
+		// inventory one, so that check hid the stat block everywhere it can be read.
+		// The book has to actually be open.
+		val book = client.player?.recipeBook
+		val open = book != null && book.isOpen(RecipeBookType.CRAFTING)
+		CompanionTooltip.setHidden(open)
 	}
 
 	/**
