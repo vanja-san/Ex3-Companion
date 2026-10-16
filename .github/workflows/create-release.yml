@@ -5,7 +5,10 @@
 # the commit you want to ship is on the branch.
 #
 # The tag defaults to the version in gradle.properties, so the release tag and
-# the artifact can never drift apart the way a hand-typed tag does.
+# the artifact can never drift apart the way a hand-typed tag does. The release
+# notes are generated from the git history rather than kept in a hand-written
+# file, because a file that is forgotten goes stale quietly and the same lines
+# end up in release after release.
 
 name: create-release
 
@@ -36,6 +39,9 @@ jobs:
     steps:
       - name: checkout repository
         uses: actions/checkout@v7
+        with:
+          # The notes are generated from history, so the full log has to be there.
+          fetch-depth: 0
 
       - name: validate gradle wrapper
         uses: gradle/actions/wrapper-validation@v6
@@ -51,7 +57,6 @@ jobs:
 
       - name: build
         run: ./gradlew build
-
       - name: resolve version and release tag
         id: release
         env:
@@ -66,17 +71,29 @@ jobs:
             exit 1
           fi
 
+          minecraft="$(sed -n 's/^minecraft = "\(.*\)"$/\1/p' gradle/libs.versions.toml)"
+          if [ -z "$minecraft" ]; then
+            echo "::error::no minecraft version in gradle/libs.versions.toml"
+            exit 1
+          fi
+
           tag="${INPUT_TAG:-v${version}}"
 
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "minecraft=${minecraft}" >> "$GITHUB_OUTPUT"
 
       - name: verify the jar matches the version
+        id: jar
         env:
           VERSION: ${{ steps.release.outputs.version }}
+          MINECRAFT: ${{ steps.release.outputs.minecraft }}
         run: |
           set -euo pipefail
-          jar="build/libs/Ex3Companion-v${VERSION}-mc26.3-Fabric.jar"
+          # The jar name carries the Minecraft version, and build.gradle.kts reads it
+          # from the same libs.versions.toml entry this step reads, so the file on disk
+          # is the one that is expected.
+          jar="build/libs/Ex3Companion-v${VERSION}-mc${MINECRAFT}-Fabric.jar"
 
           if [ ! -f "$jar" ]; then
             echo "::error::expected ${jar}, found instead:"
@@ -92,13 +109,97 @@ jobs:
           fi
 
           echo "verified ${jar}"
+          echo "JAR_PATH=${jar}" >> "$GITHUB_OUTPUT"
+
+      - name: generate release notes
+        id: generate_release_notes
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+          VERSION: ${{ steps.release.outputs.version }}
+          MINECRAFT: ${{ steps.release.outputs.minecraft }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          notes_file="$(mktemp)"
+
+          # The tag does not exist yet - gh creates it - so this resolves to the tag
+          # *before* this release, which is exactly the range the notes should cover.
+          previous="$(git describe --tags --abbrev=0 2>/dev/null || true)"
+
+          if [ -n "$previous" ]; then
+            range="${previous}..HEAD"
+            intro="Changes since ${previous}:"
+            footer="Full Changelog: https://github.com/${REPO}/compare/${previous}...${TAG}"
+          else
+            # First release in the repository: there is nothing to diff against, so
+            # every commit counts rather than failing on the missing describe.
+            range="HEAD"
+            intro="Everything in this release:"
+            footer=""
+          fi
+
+          subjects="$(git log --pretty='%s' $range)"
+
+          {
+            echo "Ex3 Companion ${TAG} for Minecraft ${MINECRAFT} (Fabric)."
+            echo
+            echo "${intro}"
+            echo
+          } >> "$notes_file"
+
+          # Commits follow conventional-commit prefixes, so they can be grouped without
+          # anyone maintaining a changelog by hand. The prefix is dropped on the way out,
+          # because the section title already says what the group is.
+          emit() {
+            local title="$1" pattern="$2" matched subject clean
+            matched="$(printf '%s\n' "$subjects" | grep -E "$pattern" || true)"
+            [ -z "$matched" ] && return 0
+            echo "${title}" >> "$notes_file"
+            while IFS= read -r subject; do
+              [ -n "$subject" ] || continue
+              clean="$(printf '%s' "$subject" | sed -E 's/^[a-z]+(\([^)]*\))?:[[:space:]]*//')"
+              echo "- ${clean}" >> "$notes_file"
+            done <<< "$matched"
+            echo >> "$notes_file"
+          }
+
+          emit "New"        '^(feat|feature)(\([^)]*\))?: '
+          emit "Fixed"      '^(fix|bugfix)(\([^)]*\))?: '
+          emit "Changed"    '^refactor(\([^)]*\))?: '
+          emit "Tests"      '^test(\([^)]*\))?: '
+          emit "Docs"       '^docs(\([^)]*\))?: '
+          emit "Build & CI" '^(chore|ci|build)(\([^)]*\))?: '
+
+          # Anything without a recognised prefix still happened and should be visible.
+          other="$(printf '%s\n' "$subjects" \
+            | grep -Ev '^(feat|feature|fix|bugfix|refactor|test|docs|chore|ci|build)(\([^)]*\))?: ' \
+            || true)"
+          if [ -n "$other" ]; then
+            echo "Other changes" >> "$notes_file"
+            while IFS= read -r subject; do
+              [ -n "$subject" ] || continue
+              echo "- ${subject}" >> "$notes_file"
+            done <<< "$other"
+            echo >> "$notes_file"
+          fi
+
+          if [ -n "$footer" ]; then
+            echo "${footer}" >> "$notes_file"
+          fi
+
+          echo "notes written to ${notes_file}"
+          echo "----------------------------------------"
+          cat "$notes_file"
+          echo "----------------------------------------"
+          echo "NOTES_PATH=${notes_file}" >> "$GITHUB_OUTPUT"
 
       - name: publish release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.release.outputs.tag }}
-          VERSION: ${{ steps.release.outputs.version }}
+          JAR_PATH: ${{ steps.jar.outputs.JAR_PATH }}
           PRERELEASE: ${{ inputs.prerelease }}
+          NOTES_PATH: ${{ steps.generate_release_notes.outputs.NOTES_PATH }}
         run: |
           set -euo pipefail
 
@@ -108,7 +209,7 @@ jobs:
           fi
 
           gh release create "$TAG" \
-            "build/libs/Ex3Companion-v${VERSION}-mc26.3-Fabric.jar" \
+            "$JAR_PATH" \
             --title "$TAG" \
-            --generate-notes \
+            --notes-file "$NOTES_PATH" \
             "${args[@]}"
